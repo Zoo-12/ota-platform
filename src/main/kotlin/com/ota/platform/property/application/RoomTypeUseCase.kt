@@ -1,0 +1,98 @@
+package com.ota.platform.property.application
+
+import com.ota.platform.common.exception.NotFoundException
+import com.ota.platform.inventory.domain.RoomInventory
+import com.ota.platform.inventory.infrastructure.RoomInventoryRepository
+import com.ota.platform.property.domain.BedType
+import com.ota.platform.property.domain.RoomType
+import com.ota.platform.property.infrastructure.PropertyRepository
+import com.ota.platform.property.infrastructure.RoomTypeRepository
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
+
+@Service
+class RoomTypeUseCase(
+    private val roomTypeRepository: RoomTypeRepository,
+    private val propertyRepository: PropertyRepository,
+    private val roomInventoryRepository: RoomInventoryRepository,
+) {
+
+    @Transactional
+    fun register(command: RegisterRoomTypeCommand): Long {
+        if (!propertyRepository.existsById(command.propertyId)) {
+            throw NotFoundException("Property", command.propertyId)
+        }
+        val roomType = RoomType(
+            propertyId = command.propertyId,
+            name = command.name,
+            description = command.description,
+            maxOccupancy = command.maxOccupancy,
+            bedType = command.bedType,
+            sizeSqm = command.sizeSqm,
+            amenities = command.amenities,
+        )
+        val saved = roomTypeRepository.save(roomType)
+
+        // 등록 시 기본 재고(0개) 초기화 — 파트너가 이후 재고 설정
+        if (command.initInventoryFrom != null && command.initInventoryTo != null) {
+            initInventories(saved.id, command.totalCount ?: 0, command.initInventoryFrom, command.initInventoryTo)
+        }
+        return saved.id
+    }
+
+    @Transactional
+    fun update(roomTypeId: Long, command: UpdateRoomTypeCommand) {
+        val roomType = findById(roomTypeId)
+        roomType.update(
+            name = command.name,
+            description = command.description,
+            maxOccupancy = command.maxOccupancy,
+            bedType = command.bedType,
+            sizeSqm = command.sizeSqm,
+            amenities = command.amenities,
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getByProperty(propertyId: Long): List<RoomType> =
+        roomTypeRepository.findAllByPropertyId(propertyId)
+
+    private fun findById(roomTypeId: Long): RoomType =
+        roomTypeRepository.findById(roomTypeId)
+            .orElseThrow { NotFoundException("RoomType", roomTypeId) }
+
+    private fun initInventories(roomTypeId: Long, totalCount: Int, from: LocalDate, to: LocalDate) {
+        val inventories = from.datesUntil(to.plusDays(1)).map { date ->
+            RoomInventory(
+                roomTypeId = roomTypeId,
+                date = date,
+                totalCount = totalCount,
+                availableCount = totalCount,
+            )
+        }.toList()
+        roomInventoryRepository.saveAll(inventories)
+    }
+}
+
+data class RegisterRoomTypeCommand(
+    val propertyId: Long,
+    val name: String,
+    val description: String?,
+    val maxOccupancy: Int,
+    val bedType: BedType,
+    val sizeSqm: Double?,
+    val amenities: String?,
+    val totalCount: Int?,
+    val initInventoryFrom: LocalDate?,
+    val initInventoryTo: LocalDate?,
+)
+
+data class UpdateRoomTypeCommand(
+    val name: String,
+    val description: String?,
+    val maxOccupancy: Int,
+    val bedType: BedType,
+    val sizeSqm: Double?,
+    val amenities: String?,
+)
