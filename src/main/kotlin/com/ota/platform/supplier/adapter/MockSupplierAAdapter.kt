@@ -1,10 +1,13 @@
 package com.ota.platform.supplier.adapter
 
+import com.ota.platform.supplier.port.AccommodationDetailResult
 import com.ota.platform.supplier.port.AccommodationPort
 import com.ota.platform.supplier.port.AccommodationRateResult
 import com.ota.platform.supplier.port.AccommodationSearchQuery
 import com.ota.platform.supplier.port.AccommodationSearchResult
 import com.ota.platform.supplier.port.AccommodationSource
+import com.ota.platform.supplier.port.RatePlanDetail
+import com.ota.platform.supplier.port.RoomTypeDetail
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -37,6 +40,35 @@ class MockSupplierAAdapter : AccommodationPort {
                 addressCity = query.city,
                 minPrice = BigDecimal("200000"),
                 source = AccommodationSource.SUPPLIER_A,
+            ),
+        )
+    }
+
+    override fun getDetail(accommodationId: String): AccommodationDetailResult {
+        val mockName = if (accommodationId.endsWith("001")) "[Supplier A] 서울 중심부 호텔" else "[Supplier A] 강남 비즈니스 호텔"
+        return AccommodationDetailResult(
+            accommodationId = accommodationId,
+            name = mockName,
+            description = "Supplier A에서 제공하는 숙소입니다.",
+            category = "HOTEL",
+            addressCity = "서울",
+            addressDistrict = null,
+            addressDetail = null,
+            checkInTime = "15:00",
+            checkOutTime = "11:00",
+            source = AccommodationSource.SUPPLIER_A,
+            roomTypes = listOf(
+                RoomTypeDetail(
+                    roomTypeId = "SUPPLIER_A:ROOM-001",
+                    name = "Standard Room",
+                    maxOccupancy = 2,
+                    bedType = "DOUBLE",
+                    sizeSqm = 28.0,
+                    ratePlans = listOf(
+                        RatePlanDetail("SUPPLIER_A:RATE-001", "기본 요금 (무료 취소)", "FREE_CANCEL", false, java.math.BigDecimal("150000")),
+                        RatePlanDetail("SUPPLIER_A:RATE-002", "조식 포함", "NON_REFUNDABLE", true, java.math.BigDecimal("170000")),
+                    ),
+                ),
             ),
         )
     }

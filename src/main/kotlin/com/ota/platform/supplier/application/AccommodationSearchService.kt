@@ -2,10 +2,12 @@ package com.ota.platform.supplier.application
 
 import com.ota.platform.supplier.adapter.InternalAccommodationAdapter
 import com.ota.platform.supplier.adapter.MockSupplierAAdapter
+import com.ota.platform.supplier.port.AccommodationDetailResult
 import com.ota.platform.supplier.port.AccommodationPort
 import com.ota.platform.supplier.port.AccommodationRateResult
 import com.ota.platform.supplier.port.AccommodationSearchQuery
 import com.ota.platform.supplier.port.AccommodationSearchResult
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 
@@ -21,6 +23,10 @@ class AccommodationSearchService(
     private val adapters: List<AccommodationPort>
         get() = listOf(internalAdapter, mockSupplierAAdapter)
 
+    @Cacheable(
+        cacheNames = ["accommodation-search"],
+        key = "#query.city + ':' + #query.checkIn + ':' + #query.checkOut + ':' + #query.guestCount",
+    )
     fun search(query: AccommodationSearchQuery): List<AccommodationSearchResult> {
         return adapters
             .flatMap { adapter ->
@@ -29,10 +35,22 @@ class AccommodationSearchService(
             .sortedBy { it.minPrice }
     }
 
+    @Cacheable(
+        cacheNames = ["accommodation-rates"],
+        key = "#accommodationId + ':' + #checkIn + ':' + #checkOut",
+    )
     fun getRates(accommodationId: String, checkIn: LocalDate, checkOut: LocalDate): List<AccommodationRateResult> {
         val adapter = resolveAdapter(accommodationId)
         return adapter.getRates(accommodationId, checkIn, checkOut)
             .sortedBy { it.totalPrice }
+    }
+
+    @Cacheable(
+        cacheNames = ["accommodation-detail"],
+        key = "#accommodationId",
+    )
+    fun getDetail(accommodationId: String): AccommodationDetailResult {
+        return resolveAdapter(accommodationId).getDetail(accommodationId)
     }
 
     private fun resolveAdapter(accommodationId: String): AccommodationPort = when {

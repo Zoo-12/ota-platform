@@ -2,9 +2,12 @@ package com.ota.platform.booking.api
 
 import com.ota.platform.common.response.ApiResponse
 import com.ota.platform.supplier.application.AccommodationSearchService
+import com.ota.platform.supplier.port.AccommodationDetailResult
 import com.ota.platform.supplier.port.AccommodationRateResult
 import com.ota.platform.supplier.port.AccommodationSearchQuery
 import com.ota.platform.supplier.port.AccommodationSearchResult
+import com.ota.platform.supplier.port.RatePlanDetail
+import com.ota.platform.supplier.port.RoomTypeDetail
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping
@@ -38,6 +41,15 @@ class CustomerAccommodationController(
             ),
         )
         return ApiResponse.ok(results.map { it.toResponse() })
+    }
+
+    @Operation(summary = "숙소 상세 조회 (객실 타입 + 요금제 포함)")
+    @GetMapping("/{accommodationId}")
+    fun getDetail(
+        @PathVariable accommodationId: String,
+    ): ApiResponse<AccommodationDetailResponse> {
+        val detail = accommodationSearchService.getDetail(accommodationId)
+        return ApiResponse.ok(detail.toResponse())
     }
 
     @Operation(summary = "숙소 요금 조회")
@@ -92,4 +104,66 @@ data class AccommodationRateResponse(
     val pricePerNight: BigDecimal,
     val totalPrice: BigDecimal,
     val availableCount: Int,
+)
+
+fun AccommodationDetailResult.toResponse() = AccommodationDetailResponse(
+    accommodationId = accommodationId,
+    name = name,
+    description = description,
+    category = category,
+    addressCity = addressCity,
+    addressDistrict = addressDistrict,
+    addressDetail = addressDetail,
+    checkInTime = checkInTime,
+    checkOutTime = checkOutTime,
+    source = source.name,
+    roomTypes = roomTypes.map { it.toResponse() },
+)
+
+fun RoomTypeDetail.toResponse() = RoomTypeDetailResponse(
+    roomTypeId = roomTypeId,
+    name = name,
+    maxOccupancy = maxOccupancy,
+    bedType = bedType,
+    sizeSqm = sizeSqm,
+    ratePlans = ratePlans.map { it.toResponse() },
+)
+
+fun RatePlanDetail.toResponse() = RatePlanDetailResponse(
+    ratePlanId = ratePlanId,
+    name = name,
+    cancelPolicy = cancelPolicy,
+    breakfastIncluded = breakfastIncluded,
+    basePrice = basePrice,
+)
+
+data class AccommodationDetailResponse(
+    val accommodationId: String,
+    val name: String,
+    val description: String?,
+    val category: String,
+    val addressCity: String,
+    val addressDistrict: String?,
+    val addressDetail: String?,
+    val checkInTime: String?,
+    val checkOutTime: String?,
+    val source: String,
+    val roomTypes: List<RoomTypeDetailResponse>,
+)
+
+data class RoomTypeDetailResponse(
+    val roomTypeId: String,
+    val name: String,
+    val maxOccupancy: Int,
+    val bedType: String,
+    val sizeSqm: Double?,
+    val ratePlans: List<RatePlanDetailResponse>,
+)
+
+data class RatePlanDetailResponse(
+    val ratePlanId: String,
+    val name: String,
+    val cancelPolicy: String,
+    val breakfastIncluded: Boolean,
+    val basePrice: BigDecimal,
 )

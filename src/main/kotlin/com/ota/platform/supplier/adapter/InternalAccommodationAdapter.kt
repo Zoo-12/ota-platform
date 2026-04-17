@@ -6,11 +6,14 @@ import com.ota.platform.property.domain.PropertyStatus
 import com.ota.platform.property.infrastructure.PropertyRepository
 import com.ota.platform.property.infrastructure.RatePlanRepository
 import com.ota.platform.property.infrastructure.RoomTypeRepository
+import com.ota.platform.supplier.port.AccommodationDetailResult
 import com.ota.platform.supplier.port.AccommodationPort
 import com.ota.platform.supplier.port.AccommodationRateResult
 import com.ota.platform.supplier.port.AccommodationSearchQuery
 import com.ota.platform.supplier.port.AccommodationSearchResult
 import com.ota.platform.supplier.port.AccommodationSource
+import com.ota.platform.supplier.port.RatePlanDetail
+import com.ota.platform.supplier.port.RoomTypeDetail
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -64,6 +67,45 @@ class InternalAccommodationAdapter(
                 source = AccommodationSource.INTERNAL,
             )
         }
+    }
+
+    @Transactional(readOnly = true)
+    override fun getDetail(accommodationId: String): AccommodationDetailResult {
+        val propertyId = accommodationId.removePrefix("INTERNAL:").toLong()
+        val property = propertyRepository.findById(propertyId).orElseThrow { NoSuchElementException("숙소를 찾을 수 없습니다: $propertyId") }
+        val roomTypes = roomTypeRepository.findAllByPropertyId(propertyId)
+
+        return AccommodationDetailResult(
+            accommodationId = accommodationId,
+            name = property.name,
+            description = property.description,
+            category = property.category.name,
+            addressCity = property.addressCity,
+            addressDistrict = property.addressDistrict,
+            addressDetail = property.addressDetail,
+            checkInTime = property.checkInTime?.toString(),
+            checkOutTime = property.checkOutTime?.toString(),
+            source = AccommodationSource.INTERNAL,
+            roomTypes = roomTypes.map { roomType ->
+                val ratePlans = ratePlanRepository.findAllByRoomTypeIdAndIsActiveTrue(roomType.id)
+                RoomTypeDetail(
+                    roomTypeId = roomType.id.toString(),
+                    name = roomType.name,
+                    maxOccupancy = roomType.maxOccupancy,
+                    bedType = roomType.bedType.name,
+                    sizeSqm = roomType.sizeSqm,
+                    ratePlans = ratePlans.map { rp ->
+                        RatePlanDetail(
+                            ratePlanId = rp.id.toString(),
+                            name = rp.name,
+                            cancelPolicy = rp.cancelPolicy.name,
+                            breakfastIncluded = rp.breakfastIncluded,
+                            basePrice = rp.basePrice,
+                        )
+                    },
+                )
+            },
+        )
     }
 
     @Transactional(readOnly = true)
