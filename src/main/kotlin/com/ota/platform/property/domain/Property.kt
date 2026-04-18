@@ -88,6 +88,10 @@ class Property(
         status = PropertyStatus.INACTIVE
     }
 
+    fun reactivate() {
+        status = PropertyStatus.ACTIVE
+    }
+
     fun update(
         name: String,
         description: String?,

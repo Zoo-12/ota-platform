@@ -56,12 +56,22 @@ class AdminPropertyController(
         return ApiResponse.ok()
     }
 
-    @Operation(summary = "숙소 비활성화")
+    @Operation(summary = "숙소 비활성화 (ACTIVE → INACTIVE)")
     @PatchMapping("/{propertyId}/deactivate")
     fun deactivate(@PathVariable propertyId: Long): ApiResponse<Unit> {
         val property = propertyRepository.findById(propertyId)
             .orElseThrow { NotFoundException("Property", propertyId) }
         property.deactivate()
+        propertyRepository.save(property)
+        return ApiResponse.ok()
+    }
+
+    @Operation(summary = "숙소 재활성화 (INACTIVE → ACTIVE)")
+    @PatchMapping("/{propertyId}/reactivate")
+    fun reactivate(@PathVariable propertyId: Long): ApiResponse<Unit> {
+        val property = propertyRepository.findById(propertyId)
+            .orElseThrow { NotFoundException("Property", propertyId) }
+        property.reactivate()
         propertyRepository.save(property)
         return ApiResponse.ok()
     }
