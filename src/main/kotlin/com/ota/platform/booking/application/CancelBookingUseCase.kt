@@ -1,9 +1,11 @@
 package com.ota.platform.booking.application
 
+import com.ota.platform.booking.event.BookingCancelledEvent
 import com.ota.platform.booking.infrastructure.BookingRepository
 import com.ota.platform.common.exception.BadRequestException
 import com.ota.platform.common.exception.NotFoundException
 import com.ota.platform.inventory.domain.RoomInventoryService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional
 class CancelBookingUseCase(
     private val bookingRepository: BookingRepository,
     private val roomInventoryService: RoomInventoryService,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
 
     @Transactional
@@ -27,6 +30,16 @@ class CancelBookingUseCase(
         // 재고 복원
         val inventoryIds = booking.bookingRooms.map { it.roomInventoryId }
         roomInventoryService.increaseInventories(inventoryIds)
+
+        // 트랜잭션 커밋 후 이벤트 발행 (@TransactionalEventListener AFTER_COMMIT)
+        eventPublisher.publishEvent(
+            BookingCancelledEvent(
+                bookingId = booking.id,
+                customerId = booking.customerId,
+                propertyId = booking.propertyId,
+                reason = command.reason,
+            ),
+        )
     }
 }
 

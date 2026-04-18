@@ -2,6 +2,7 @@ package com.ota.platform.booking.application
 
 import com.ota.platform.booking.domain.Booking
 import com.ota.platform.booking.domain.BookingRoom
+import com.ota.platform.booking.event.BookingCreatedEvent
 import com.ota.platform.booking.infrastructure.BookingRepository
 import com.ota.platform.booking.infrastructure.CustomerRepository
 import com.ota.platform.common.exception.BadRequestException
@@ -10,6 +11,7 @@ import com.ota.platform.inventory.domain.RoomInventoryService
 import com.ota.platform.property.domain.RateCalculationService
 import com.ota.platform.property.infrastructure.RatePlanRepository
 import com.ota.platform.property.infrastructure.RoomTypeRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -22,6 +24,7 @@ class CreateBookingUseCase(
     private val ratePlanRepository: RatePlanRepository,
     private val roomInventoryService: RoomInventoryService,
     private val rateCalculationService: RateCalculationService,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
 
     /**
@@ -83,7 +86,23 @@ class CreateBookingUseCase(
             )
         }
 
-        return bookingRepository.save(booking).id
+        val savedBooking = bookingRepository.save(booking)
+
+        // 트랜잭션 커밋 후 이벤트 발행 (@TransactionalEventListener AFTER_COMMIT)
+        eventPublisher.publishEvent(
+            BookingCreatedEvent(
+                bookingId = savedBooking.id,
+                customerId = savedBooking.customerId,
+                propertyId = savedBooking.propertyId,
+                roomTypeId = savedBooking.roomTypeId,
+                guestName = savedBooking.guestName,
+                checkIn = savedBooking.checkIn,
+                checkOut = savedBooking.checkOut,
+                totalPrice = savedBooking.totalPrice,
+            ),
+        )
+
+        return savedBooking.id
     }
 
     private fun validateDates(checkIn: LocalDate, checkOut: LocalDate) {
