@@ -398,7 +398,90 @@ src/main/kotlin/com/ota/platform/
 
 ---
 
-## 9. 구현 범위 및 제외 항목
+## 9. 에러 처리 및 로깅 전략
+
+### 9.1 traceId 전파
+
+모든 HTTP 요청에 고유한 `traceId`를 부여하여 요청 단위 로그 추적이 가능하도록 설계한다.
+
+```
+클라이언트 요청
+    │
+    ▼
+RequestLoggingFilter
+    ├── X-Trace-Id 헤더 있으면 재사용
+    ├── 없으면 UUID 16자리 신규 생성
+    ├── MDC.put("traceId", id)        → 이후 모든 로그에 자동 포함
+    └── 응답 헤더 X-Trace-Id 로 반환  → 클라이언트가 CS 문의 시 제공
+```
+
+에러 응답 body에도 `traceId`를 포함시켜, 클라이언트가 서버 로그와 연결할 수 있도록 한다.
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Property not found: 999",
+    "traceId": "a1b2c3d4e5f6g7h8"
+  }
+}
+```
+
+### 9.2 요청/응답 로깅
+
+`RequestLoggingFilter`가 모든 API 요청의 진입/종료 시점을 로깅한다.
+
+```
+→ GET /api/customer/accommodations/search?city=서울   (요청 시작)
+← GET /api/customer/accommodations/search 200 45ms [OK]  (요청 종료)
+← GET /api/customer/bookings 404 12ms [WARN]
+← POST /api/customer/bookings 200 3250ms [SLOW]          (3초 초과 감지)
+```
+
+슬로우 요청 기준: **3,000ms** 이상 시 `[SLOW]` 태그 부착.
+
+### 9.3 에러 처리 계층화
+
+`GlobalExceptionHandler`에서 예외 유형별로 HTTP 상태 코드와 로그 레벨을 분리한다.
+
+| 예외 유형 | HTTP 상태 | 로그 레벨 | 예시 |
+|----------|----------|---------|------|
+| `NotFoundException` | 404 | WARN | 존재하지 않는 리소스 조회 |
+| `BadRequestException` | 400 | WARN | 잘못된 요청 파라미터 |
+| `ConflictException` | 409 | WARN | 재고 부족으로 예약 실패 |
+| `MethodArgumentNotValidException` | 400 | WARN | Bean Validation 실패 |
+| `MissingServletRequestParameterException` | 400 | WARN | 필수 파라미터 누락 |
+| `Exception` (그 외) | 500 | ERROR | 예상치 못한 서버 오류 |
+
+- **4xx**: 예상 가능한 비즈니스 오류 → WARN. 운영 알림 불필요
+- **5xx**: 즉시 확인이 필요한 서버 오류 → ERROR. 운영 알림 대상
+
+### 9.4 프로필별 로깅 포맷
+
+`logback-spring.xml`에서 실행 환경에 따라 로깅 포맷을 분리한다.
+
+| 프로필 | 포맷 | 이유 |
+|--------|------|------|
+| `local`, `development` | 텍스트 (사람이 읽기 쉬운 형태) | 개발 생산성 |
+| `alpha`, `beta`, `production` | JSON 구조화 로깅 + 파일 롤링 | ELK 스택 등 로그 수집 시스템 연동 |
+
+**JSON 로그 예시 (production):**
+```json
+{
+  "timestamp": "2026-04-19T14:30:00.123Z",
+  "level": "INFO",
+  "traceId": "a1b2c3d4e5f6g7h8",
+  "logger": "RequestLoggingFilter",
+  "message": "← GET /api/customer/accommodations/search 200 45ms [OK]"
+}
+```
+
+**파일 롤링 정책:** 100MB 단위 분할, 30일 보관, 총 3GB 상한
+
+---
+
+## 10. 구현 범위 및 제외 항목
 
 ### 구현할 항목 (핵심 흐름)
 - 숙소, 객실 타입, 요금 플랜 등록 (Extranet API)
