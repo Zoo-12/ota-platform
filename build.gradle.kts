@@ -47,6 +47,9 @@ dependencies {
     // API 문서 (Swagger)
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$springdocVersion")
 
+    // 구조화 로깅 (JSON)
+    implementation("net.logstash.logback:logstash-logback-encoder:8.0")
+
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")

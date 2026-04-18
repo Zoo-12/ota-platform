@@ -39,6 +39,7 @@ class SecurityConfig {
         config.allowedOrigins = listOf("http://localhost:3000")
         config.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         config.allowedHeaders = listOf("*")
+        config.exposedHeaders = listOf("X-Trace-Id")
         config.allowCredentials = true
 
         val source = UrlBasedCorsConfigurationSource()

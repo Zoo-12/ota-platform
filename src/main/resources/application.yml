@@ -42,7 +42,4 @@ springdoc:
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
 
-logging:
-  level:
-    com.ota.platform: INFO
-    org.hibernate.SQL: WARN
+# 로깅 설정은 logback-spring.xml에서 프로필별로 관리
