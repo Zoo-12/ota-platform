@@ -166,6 +166,58 @@
 
 ---
 
+## Day 2 - 로컬 환경 구축 / 캐싱 / 상세 API / 프론트엔드 / 로깅 전략
+
+### 수행 내용
+- docker-compose healthcheck 추가 및 `start-local.sh` 작성 (인프라 → 서버 순차 기동 자동화)
+- Flyway V2 시드 데이터 작성 (파트너 2, 숙소 4, 객실 6종, 요금제 12개, 90일치 재고)
+- `@Cacheable` 적용: 검색 / 요금 조회 / 숙소 상세 (Redis, TTL 5분)
+- 숙소 상세 조회 API 추가: `GET /api/customer/accommodations/{id}` (객실 타입 + 요금제 포함)
+- Admin 숙소 재활성화 API 추가 (`INACTIVE → ACTIVE`)
+- Next.js 14 프론트엔드 구축: 고객 검색/예약, Extranet 5단계 마법사, Admin 관리 화면
+- 에러 처리 및 로깅 전략 구현: `RequestLoggingFilter`, `GlobalExceptionHandler` 강화, `logback-spring.xml`
+- 프론트 TraceBar: 최근 10개 요청의 traceId / 상태코드 / 응답시간 표시
+
+### 의사결정
+
+**[Flyway 시드 데이터 전략]**
+- 선택: 별도 스크립트 대신 V2 마이그레이션으로 관리
+- 이유: Flyway가 버전 순서를 보장하므로 스키마 생성(V1) 이후 시드(V2)가 반드시 순서대로 실행된다. Recursive CTE로 오늘 날짜 기준 90일치 재고를 자동 생성해 서버 기동 시점과 무관하게 유효한 데이터가 유지된다.
+
+**[Redis 캐싱 직렬화 방식 선택]**
+- 선택: `Jackson2JsonRedisSerializer<Any>` + `activateDefaultTypingAsProperty("@class")`
+- 이유: Spring Data Redis 3.5.0에서 `GenericJackson2JsonRedisSerializer` 기본 생성자가 타입 정보를 포함하지 않는 방식으로 동작해 역직렬화 시 `LinkedHashMap`으로 반환되는 문제가 발생했다. `activateDefaultTypingAsProperty`로 `@class` 필드를 JSON에 명시적으로 포함시켜 정확한 타입 복원을 보장하는 방식으로 해결했다.
+
+**[숙소 상세 API: 기존 Port 인터페이스 확장]**
+- 선택: 별도 레이어 없이 `AccommodationPort`에 `getDetail()` 추가
+- 이유: 이미 내부/외부 Supplier를 동일 인터페이스로 추상화한 구조가 있으므로 새 메서드를 추가하는 것이 일관성 있다. 새 서비스를 만들면 어댑터 패턴의 이점이 없어진다.
+
+**[traceId 전파 전략]**
+- 선택: 외부 `X-Trace-Id` 헤더 수신 시 재사용, 없으면 서버에서 UUID 16자리 생성 → MDC 저장 → 응답 헤더로 반환
+- 이유: 클라이언트(프론트)가 traceId를 직접 생성해 넘길 수 있어 프론트-백 로그 연결이 가능하다. MDC에 저장하면 모든 로그에 자동 포함되어 단일 요청 추적이 용이하다.
+
+**[로깅 레벨 전략]**
+- 4xx: WARN — 예상 가능한 비즈니스 오류, 운영 알림 불필요
+- 5xx: ERROR — 즉시 확인 필요, 운영 알림 대상
+- 슬로우 요청(3초 이상): WARN + `[SLOW]` 태그
+
+**[프로필별 로깅 포맷 분리]**
+- local: 사람이 읽기 쉬운 텍스트 포맷 (`[traceId]` 포함)
+- production: JSON 구조화 로깅 (`logstash-logback-encoder`) + 파일 롤링 (100MB/30일/3GB 상한)
+- 이유: JSON 포맷은 ELK 스택 등 로그 수집 시스템과 바로 연동 가능하다. 로컬에서 JSON을 보면 가독성이 크게 떨어지므로 프로필로 분리하는 것이 적절하다.
+
+### 기술적 문제 해결
+
+**문제 1: Redis 역직렬화 — `LinkedHashMap cannot be cast`**
+- 원인: `@Cacheable` 적용 후 첫 요청(캐시 미스)은 성공하지만 두 번째 요청(캐시 히트) 시 Redis에서 읽은 JSON이 타입 정보 없이 `LinkedHashMap`으로 역직렬화됨
+- 해결 과정: `GenericJackson2JsonRedisSerializer` 기본 생성자 → 커스텀 ObjectMapper에 `activateDefaultTyping(NON_FINAL)` → `As.PROPERTY` 방식 시도 순으로 진행했으나, Spring Data Redis 3.5.0에서 내부 `JacksonObjectReader`와 포맷 충돌 발생. `Jackson2JsonRedisSerializer<Any>` + `activateDefaultTypingAsProperty("@class")` 조합으로 최종 해결
+
+**문제 2: 브라우저에서 `X-Trace-Id` 헤더 미수신**
+- 원인: CORS 정책상 브라우저는 기본적으로 커스텀 응답 헤더를 JavaScript에서 읽지 못함
+- 해결: `SecurityConfig`의 CORS 설정에 `exposedHeaders = listOf("X-Trace-Id")` 추가 (`Access-Control-Expose-Headers`)
+
+---
+
 ## 미구현 항목 및 이유
 
 | 항목 | 미구현 이유 |
