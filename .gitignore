@@ -46,3 +46,6 @@ out/
 .env
 *.env.local
 application-local.yml
+
+### Performance test output ###
+performance/results/*.json
