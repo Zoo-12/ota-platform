@@ -4,6 +4,7 @@ import com.ota.platform.common.response.ApiResponse
 import com.ota.platform.common.response.RegisterResponse
 import com.ota.platform.property.application.PartnerUseCase
 import com.ota.platform.property.application.RegisterPartnerCommand
+import com.ota.platform.property.infrastructure.PartnerRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -22,7 +23,17 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/extranet/partners")
 class ExtranetPartnerController(
     private val partnerUseCase: PartnerUseCase,
+    private val partnerRepository: PartnerRepository,
 ) {
+    @Operation(summary = "파트너 목록 조회")
+    @GetMapping
+    fun list(): ApiResponse<List<PartnerResponse>> {
+        val partners = partnerRepository.findAll().map {
+            PartnerResponse(it.id, it.name, it.email, it.phone, it.businessNumber, it.status.name)
+        }
+        return ApiResponse.ok(partners)
+    }
+
     @Operation(summary = "파트너 등록")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

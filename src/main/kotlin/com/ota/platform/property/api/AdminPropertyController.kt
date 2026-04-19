@@ -7,6 +7,8 @@ import com.ota.platform.property.domain.PropertyStatus
 import com.ota.platform.property.infrastructure.PropertyRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Caching
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -47,6 +49,10 @@ class AdminPropertyController(
     }
 
     @Operation(summary = "숙소 승인 (PENDING_APPROVAL → ACTIVE)")
+    @Caching(evict = [
+        CacheEvict(cacheNames = ["accommodation-search"], allEntries = true),
+        CacheEvict(cacheNames = ["accommodation-detail"], allEntries = true),
+    ])
     @PatchMapping("/{propertyId}/approve")
     fun approve(@PathVariable propertyId: Long): ApiResponse<Unit> {
         val property = propertyRepository.findById(propertyId)
@@ -57,6 +63,10 @@ class AdminPropertyController(
     }
 
     @Operation(summary = "숙소 비활성화 (ACTIVE → INACTIVE)")
+    @Caching(evict = [
+        CacheEvict(cacheNames = ["accommodation-search"], allEntries = true),
+        CacheEvict(cacheNames = ["accommodation-detail"], allEntries = true),
+    ])
     @PatchMapping("/{propertyId}/deactivate")
     fun deactivate(@PathVariable propertyId: Long): ApiResponse<Unit> {
         val property = propertyRepository.findById(propertyId)
@@ -67,6 +77,10 @@ class AdminPropertyController(
     }
 
     @Operation(summary = "숙소 재활성화 (INACTIVE → ACTIVE)")
+    @Caching(evict = [
+        CacheEvict(cacheNames = ["accommodation-search"], allEntries = true),
+        CacheEvict(cacheNames = ["accommodation-detail"], allEntries = true),
+    ])
     @PatchMapping("/{propertyId}/reactivate")
     fun reactivate(@PathVariable propertyId: Long): ApiResponse<Unit> {
         val property = propertyRepository.findById(propertyId)
