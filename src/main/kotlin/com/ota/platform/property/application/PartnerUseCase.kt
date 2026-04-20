@@ -38,7 +38,7 @@ class PartnerUseCase(
     fun approve(partnerId: Long) {
         val partner = partnerRepository.findById(partnerId)
             .orElseThrow { NotFoundException("Partner", partnerId) }
-        if (partner.status != com.ota.platform.property.domain.PartnerStatus.PENDING) {
+        if (!partner.isPending()) {
             throw BadRequestException("승인 대기 상태의 파트너만 승인할 수 있습니다.")
         }
         partner.activate()

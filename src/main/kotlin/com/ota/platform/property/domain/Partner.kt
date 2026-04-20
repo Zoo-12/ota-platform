@@ -45,6 +45,10 @@ class Partner(
     var status: PartnerStatus = PartnerStatus.PENDING
         protected set
 
+    fun isPending(): Boolean = status == PartnerStatus.PENDING
+
+    fun isActive(): Boolean = status == PartnerStatus.ACTIVE
+
     fun activate() {
         status = PartnerStatus.ACTIVE
     }
