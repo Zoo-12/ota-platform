@@ -498,3 +498,38 @@ RequestLoggingFilter
 
 ### 제외 이유
 7일이라는 기간 내에서 핵심 비즈니스 흐름(등록 → 검색 → 예약 → 취소)의 완성도를 높이는 것이 전체를 얕게 구현하는 것보다 낫다고 판단하였다.
+
+---
+
+## 11. 테스트 전략
+
+### Mock 대신 Testcontainers를 선택한 이유
+
+이 프로젝트의 핵심 비즈니스 로직은 **DB 동작에 직접 의존**한다. Mock으로 Repository를 대체하면 테스트가 통과해도 실제 환경에서 장애가 발생할 수 있는 영역이 존재한다.
+
+| 검증 항목 | Mock의 한계 | Testcontainers 효과 |
+|-----------|-------------|---------------------|
+| **비관적 락** (SELECT FOR UPDATE) | H2는 MySQL과 락 동작이 달라 동시성 테스트가 의미 없음 | 실제 MySQL 락 경쟁을 재현하여 재고 초과 방지 검증 |
+| **Flyway 마이그레이션** | Mock Repository는 DDL을 실행하지 않음 | 실제 스키마 적용 여부와 마이그레이션 무결성 검증 |
+| **트랜잭션 격리** | Mock은 트랜잭션 격리 수준을 무시 | 실제 커밋/롤백 및 격리 수준 동작 확인 |
+| **Redis 캐시** (직렬화/TTL) | Mock Cache는 직렬화 오류를 잡지 못함 | 실제 Redis로 캐시 동작과 TTL 검증 |
+| **JPA 쿼리 어노테이션** | `@Lock(PESSIMISTIC_WRITE)` 등 효과 없음 | 실제 SQL 발행 및 실행 검증 |
+
+가장 결정적인 이유: **동시 예약 시 재고 초과 방지**가 이 시스템의 핵심 요구사항이다. Mock으로 작성한 동시성 테스트는 락 경쟁 자체가 발생하지 않기 때문에, 테스트가 통과해도 실제 DB에서 재고 초과 예약이 발생할 수 있다.
+
+### 테스트 구성
+
+```
+단위 테스트 (Spring 컨텍스트 없음)
+  RoomInventoryTest     — decrease/increase/stopSell/isAvailable 도메인 로직
+  PropertyTest          — 숙소 상태 머신 (PENDING_APPROVAL → ACTIVE → INACTIVE)
+
+통합 테스트 (Testcontainers: MySQL 8.0 + Redis 7)
+  BookingIntegrationTest           — 예약 생성/취소/재고 차감·복원
+  ConcurrentBookingIntegrationTest — 비관적 락: 재고 1개×10명, 3개×10명 동시 요청
+  BookingEdgeCaseIntegrationTest   — stopSell 예약 차단, DailyRate 요금 반영, ratePlan 소속 검증
+  ExtranetApiIntegrationTest       — 객실 등록·재고 초기화·요금 오버라이드·stopSell 일괄 설정
+  AccommodationSearchIntegrationTest — 내부+Supplier 통합 검색, 재고 필터, 최저가 정렬
+```
+
+Testcontainers는 `AbstractIntegrationTest`에서 MySQL·Redis 컨테이너를 **한 번만 기동**하고 전체 테스트 클래스가 공유한다(`companion object` 내 `init` 블록). 덕분에 컨테이너 재시작 비용 없이 격리된 DB 환경을 유지한다.
