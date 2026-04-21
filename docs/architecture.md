@@ -25,27 +25,27 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          Client Layer                               │
-│   Extranet (파트너)   Customer App (고객)   Admin (운영자)          │
+│   Extranet (파트너)   Customer App (고객)   Admin (운영자)               │
+└──────────────┬──────────────────┬──────────────────┬────────────────┘
+               │                  │                  │
+┌──────────────▼──────────────────▼──────────────────▼───────────────┐
+│                           API Layer                                │
+│   /api/extranet/**       /api/customer/**      /api/admin/**       │
+│   (파트너 등록/관리)      (검색/예약)            (운영 관리)               │
 └──────────────┬──────────────────┬──────────────────┬───────────────┘
                │                  │                  │
 ┌──────────────▼──────────────────▼──────────────────▼───────────────┐
-│                           API Layer                                 │
-│   /api/extranet/**       /api/customer/**      /api/admin/**        │
-│   (파트너 등록/관리)      (검색/예약)            (운영 관리)          │
-└──────────────┬──────────────────┬──────────────────┬───────────────┘
-               │                  │                  │
-┌──────────────▼──────────────────▼──────────────────▼───────────────┐
-│                         Domain Layer                                │
-│                                                                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────┐ │
-│  │  Property   │  │  Inventory  │  │   Booking   │  │ Supplier  │ │
-│  │   Domain    │  │   Domain    │  │   Domain    │  │  Domain   │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └───────────┘ │
-└──────────────────────────────┬──────────────────────────────────────┘
+│                         Domain Layer                               │
+│                                                                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────┐  │
+│  │  Property   │  │  Inventory  │  │   Booking   │  │ Supplier  │  │
+│  │   Domain    │  │   Domain    │  │   Domain    │  │  Domain   │  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └───────────┘  │
+└──────────────────────────────┬─────────────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────────────┐
 │                      Infrastructure Layer                           │
-│   MySQL (메인 DB)   Redis (캐시)   External Supplier APIs           │
+│   MySQL (메인 DB)   Redis (캐시)   External Supplier APIs              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -107,10 +107,21 @@ ExternalSupplier (외부 공급사)
 
 ### 3.3 도메인 간 의존 규칙
 
-- `Booking` 도메인은 `Inventory` 도메인에 의존 (재고 차감)
-- `Property` 도메인은 다른 도메인에 의존하지 않음 (독립)
-- `Supplier` 도메인은 `Property` 도메인의 인터페이스를 구현
+- 도메인 간 의존은 반드시 **Port 인터페이스**를 통해서만 허용 — 타 도메인의 Repository/Entity 직접 참조 금지
+- 의존 방향은 단방향: `Booking → Inventory`, `Booking → Property`, `Property → Inventory`, `Supplier → Property/Inventory`
+- 도메인 간 데이터 전달은 Port에 정의된 DTO(`RoomTypeInfo`, `InventoryData` 등)만 사용
 - 도메인 간 직접 엔티티 참조 금지 — ID 참조만 허용
+
+**Port/Adapter 구조:**
+
+```
+booking/port/RoomTypePort    ← booking/adapter/RoomTypeAdapter    (property 인프라 접근)
+booking/port/RatePlanPort    ← booking/adapter/RatePlanAdapter    (property 인프라 접근)
+booking/port/InventoryPort   ← booking/adapter/InventoryAdapter   (inventory 도메인 서비스 접근)
+property/port/InventoryPort  ← property/adapter/InventoryAdapter  (inventory 인프라 접근)
+supplier/port/AccommodationPort ← InternalAccommodationAdapter    (property/inventory 인프라 접근)
+                                ← MockSupplierAAdapter             (외부 공급사 Mock)
+```
 
 ---
 
@@ -334,25 +345,28 @@ TTL: 5분
 src/main/kotlin/com/ota/platform/
 ├── property/
 │   ├── api/          # Controller (Extranet, Admin)
-│   ├── application/  # UseCase, Service
-│   ├── domain/       # Entity, Repository interface
-│   └── infrastructure/ # JPA Repository 구현체
+│   ├── application/  # UseCase
+│   ├── domain/       # Entity, Domain Service
+│   ├── infrastructure/ # JPA Repository
+│   ├── port/         # InventoryPort (interface + DTO)
+│   └── adapter/      # InventoryAdapter (inventory 인프라 접근)
 │
 ├── inventory/
-│   ├── api/
-│   ├── application/
-│   ├── domain/
-│   └── infrastructure/
+│   ├── domain/       # RoomInventory, RoomInventoryService
+│   └── infrastructure/ # JPA Repository
 │
 ├── booking/
 │   ├── api/          # Controller (Customer API)
-│   ├── application/  # BookingUseCase
+│   ├── application/  # UseCase
 │   ├── domain/       # Booking, BookingRoom
-│   └── infrastructure/
+│   ├── infrastructure/ # JPA Repository
+│   ├── event/        # BookingCreatedEvent, BookingCancelledEvent
+│   ├── port/         # RoomTypePort, RatePlanPort, InventoryPort (interface + DTO)
+│   └── adapter/      # RoomTypeAdapter, RatePlanAdapter, InventoryAdapter
 │
 ├── supplier/
-│   ├── port/         # AccommodationPort interface
-│   ├── adapter/      # InternalAdapter, SupplierAAdapter
+│   ├── port/         # AccommodationPort (interface + DTO)
+│   ├── adapter/      # InternalAccommodationAdapter, MockSupplierAAdapter
 │   └── application/  # AccommodationSearchService (통합 검색)
 │
 └── common/
