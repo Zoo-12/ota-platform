@@ -20,7 +20,7 @@ import java.time.LocalDate
 @Component
 class MockSupplierAAdapter : AccommodationPort {
 
-    override fun canHandle(accommodationId: String) = accommodationId.startsWith("SUPPLIER_A:")
+    override fun canHandle(accommodationId: String) = accommodationId.startsWith(SupplierPrefixes.SUPPLIER_A)
 
     override fun search(query: AccommodationSearchQuery): List<AccommodationSearchResult> {
         // Mock: 서울 검색 시에만 결과 반환
@@ -28,7 +28,7 @@ class MockSupplierAAdapter : AccommodationPort {
 
         return listOf(
             AccommodationSearchResult(
-                accommodationId = "SUPPLIER_A:MOCK-001",
+                accommodationId = "${SupplierPrefixes.SUPPLIER_A}MOCK-001",
                 name = "[Supplier A] 서울 중심부 호텔",
                 category = "HOTEL",
                 addressCity = query.city,
@@ -36,7 +36,7 @@ class MockSupplierAAdapter : AccommodationPort {
                 source = AccommodationSource.SUPPLIER_A,
             ),
             AccommodationSearchResult(
-                accommodationId = "SUPPLIER_A:MOCK-002",
+                accommodationId = "${SupplierPrefixes.SUPPLIER_A}MOCK-002",
                 name = "[Supplier A] 강남 비즈니스 호텔",
                 category = "HOTEL",
                 addressCity = query.city,
@@ -61,14 +61,14 @@ class MockSupplierAAdapter : AccommodationPort {
             source = AccommodationSource.SUPPLIER_A,
             roomTypes = listOf(
                 RoomTypeDetail(
-                    roomTypeId = "SUPPLIER_A:ROOM-001",
+                    roomTypeId = "${SupplierPrefixes.SUPPLIER_A}ROOM-001",
                     name = "Standard Room",
                     maxOccupancy = 2,
                     bedType = "DOUBLE",
                     sizeSqm = 28.0,
                     ratePlans = listOf(
-                        RatePlanDetail("SUPPLIER_A:RATE-001", "기본 요금 (무료 취소)", "FREE_CANCEL", false, java.math.BigDecimal("150000")),
-                        RatePlanDetail("SUPPLIER_A:RATE-002", "조식 포함", "NON_REFUNDABLE", true, java.math.BigDecimal("170000")),
+                        RatePlanDetail("${SupplierPrefixes.SUPPLIER_A}RATE-001", "기본 요금 (무료 취소)", "FREE_CANCEL", false, java.math.BigDecimal("150000")),
+                        RatePlanDetail("${SupplierPrefixes.SUPPLIER_A}RATE-002", "조식 포함", "NON_REFUNDABLE", true, java.math.BigDecimal("170000")),
                     ),
                 ),
             ),
@@ -81,9 +81,9 @@ class MockSupplierAAdapter : AccommodationPort {
 
         return listOf(
             AccommodationRateResult(
-                roomTypeId = "SUPPLIER_A:ROOM-001",
+                roomTypeId = "${SupplierPrefixes.SUPPLIER_A}ROOM-001",
                 roomTypeName = "Standard Room",
-                ratePlanId = "SUPPLIER_A:RATE-001",
+                ratePlanId = "${SupplierPrefixes.SUPPLIER_A}RATE-001",
                 ratePlanName = "기본 요금 (무료 취소)",
                 cancelPolicy = "FREE_CANCEL",
                 breakfastIncluded = false,
@@ -92,9 +92,9 @@ class MockSupplierAAdapter : AccommodationPort {
                 availableCount = 3,
             ),
             AccommodationRateResult(
-                roomTypeId = "SUPPLIER_A:ROOM-001",
+                roomTypeId = "${SupplierPrefixes.SUPPLIER_A}ROOM-001",
                 roomTypeName = "Standard Room",
-                ratePlanId = "SUPPLIER_A:RATE-002",
+                ratePlanId = "${SupplierPrefixes.SUPPLIER_A}RATE-002",
                 ratePlanName = "조식 포함",
                 cancelPolicy = "NON_REFUNDABLE",
                 breakfastIncluded = true,

@@ -18,7 +18,7 @@ data class AccommodationSearchQuery(
 )
 
 data class AccommodationSearchResult(
-    val accommodationId: String,   // 공급사별 고유 ID (내부: "INTERNAL:{id}", 외부: "SUPPLIER_A:{id}")
+    val accommodationId: String,   // 공급사별 고유 ID (내부: "INTERNAL:{id}", 외부: "SUPPLIER_A:{id}") — SupplierPrefixes 참고
     val name: String,
     val category: String,
     val addressCity: String,

@@ -28,7 +28,7 @@ class InternalAccommodationAdapter(
     private val rateCalculationService: RateCalculationService,
 ) : AccommodationPort {
 
-    override fun canHandle(accommodationId: String) = accommodationId.startsWith("INTERNAL:")
+    override fun canHandle(accommodationId: String) = accommodationId.startsWith(SupplierPrefixes.INTERNAL)
 
     @Transactional(readOnly = true)
     override fun search(query: AccommodationSearchQuery): List<AccommodationSearchResult> {
@@ -61,7 +61,7 @@ class InternalAccommodationAdapter(
             } ?: return@mapNotNull null
 
             AccommodationSearchResult(
-                accommodationId = "INTERNAL:${property.id}",
+                accommodationId = "${SupplierPrefixes.INTERNAL}${property.id}",
                 name = property.name,
                 category = property.category.name,
                 addressCity = property.addressCity,
@@ -73,7 +73,7 @@ class InternalAccommodationAdapter(
 
     @Transactional(readOnly = true)
     override fun getDetail(accommodationId: String): AccommodationDetailResult {
-        val propertyId = accommodationId.removePrefix("INTERNAL:").toLong()
+        val propertyId = accommodationId.removePrefix(SupplierPrefixes.INTERNAL).toLong()
         val property = propertyRepository.findById(propertyId).orElseThrow { NoSuchElementException("숙소를 찾을 수 없습니다: $propertyId") }
         val roomTypes = roomTypeRepository.findAllByPropertyId(propertyId)
 
@@ -112,7 +112,7 @@ class InternalAccommodationAdapter(
 
     @Transactional(readOnly = true)
     override fun getRates(accommodationId: String, checkIn: LocalDate, checkOut: LocalDate): List<AccommodationRateResult> {
-        val propertyId = accommodationId.removePrefix("INTERNAL:").toLong()
+        val propertyId = accommodationId.removePrefix(SupplierPrefixes.INTERNAL).toLong()
         val roomTypes = roomTypeRepository.findAllByPropertyId(propertyId)
         val nights = checkIn.datesUntil(checkOut).count()
 
