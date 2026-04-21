@@ -45,6 +45,18 @@ class RedisConfig {
 
         return RedisCacheManager.builder(connectionFactory)
             .cacheDefaults(defaultConfig)
+            .withCacheConfiguration(
+                CacheNames.ACCOMMODATION_DETAIL,
+                defaultConfig.entryTtl(Duration.ofHours(1)),
+            )
+            .withCacheConfiguration(
+                CacheNames.ACCOMMODATION_RATES,
+                defaultConfig.entryTtl(Duration.ofMinutes(5)),
+            )
+            .withCacheConfiguration(
+                CacheNames.ACCOMMODATION_SEARCH,
+                defaultConfig.entryTtl(Duration.ofMinutes(2)),
+            )
             .build()
     }
 

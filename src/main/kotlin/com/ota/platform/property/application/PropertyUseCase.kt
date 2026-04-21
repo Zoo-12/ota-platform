@@ -6,6 +6,9 @@ import com.ota.platform.property.domain.Property
 import com.ota.platform.property.domain.PropertyCategory
 import com.ota.platform.property.infrastructure.PartnerRepository
 import com.ota.platform.property.infrastructure.PropertyRepository
+import com.ota.platform.common.config.CacheNames
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Caching
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalTime
@@ -37,6 +40,10 @@ class PropertyUseCase(
         return propertyRepository.save(property).id
     }
 
+    @Caching(evict = [
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_DETAIL], allEntries = true),
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_SEARCH], allEntries = true),
+    ])
     @Transactional
     fun update(command: UpdatePropertyCommand) {
         val property = findById(command.propertyId)

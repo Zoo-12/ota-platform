@@ -4,6 +4,8 @@ import com.ota.platform.common.exception.NotFoundException
 import com.ota.platform.property.infrastructure.RoomTypeRepository
 import com.ota.platform.property.port.InventoryData
 import com.ota.platform.property.port.InventoryPort
+import com.ota.platform.common.config.CacheNames
+import org.springframework.cache.annotation.CacheEvict
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -14,6 +16,7 @@ class InventoryUseCase(
     private val roomTypeRepository: RoomTypeRepository,
 ) {
 
+    @CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_SEARCH], allEntries = true)
     @Transactional
     fun bulkUpdate(command: BulkUpdateInventoryCommand) {
         if (!roomTypeRepository.existsById(command.roomTypeId)) {

@@ -1,5 +1,6 @@
 package com.ota.platform.supplier.application
 
+import com.ota.platform.common.config.CacheNames
 import com.ota.platform.supplier.port.AccommodationDetailResult
 import com.ota.platform.supplier.port.AccommodationPort
 import com.ota.platform.supplier.port.AccommodationRateResult
@@ -18,7 +19,7 @@ class AccommodationSearchService(
     private val adapters: List<AccommodationPort>,
 ) {
     @Cacheable(
-        cacheNames = ["accommodation-search"],
+        cacheNames = [CacheNames.ACCOMMODATION_SEARCH],
         key = "#query.city + ':' + #query.checkIn + ':' + #query.checkOut + ':' + #query.guestCount",
     )
     fun search(query: AccommodationSearchQuery): List<AccommodationSearchResult> {
@@ -30,7 +31,7 @@ class AccommodationSearchService(
     }
 
     @Cacheable(
-        cacheNames = ["accommodation-rates"],
+        cacheNames = [CacheNames.ACCOMMODATION_RATES],
         key = "#accommodationId + ':' + #checkIn + ':' + #checkOut",
     )
     fun getRates(accommodationId: String, checkIn: LocalDate, checkOut: LocalDate): List<AccommodationRateResult> {
@@ -40,7 +41,7 @@ class AccommodationSearchService(
     }
 
     @Cacheable(
-        cacheNames = ["accommodation-detail"],
+        cacheNames = [CacheNames.ACCOMMODATION_DETAIL],
         key = "#accommodationId",
     )
     fun getDetail(accommodationId: String): AccommodationDetailResult {

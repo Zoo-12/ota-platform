@@ -7,6 +7,9 @@ import com.ota.platform.property.domain.RatePlan
 import com.ota.platform.property.infrastructure.DailyRateRepository
 import com.ota.platform.property.infrastructure.RatePlanRepository
 import com.ota.platform.property.infrastructure.RoomTypeRepository
+import com.ota.platform.common.config.CacheNames
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Caching
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -19,6 +22,10 @@ class RatePlanUseCase(
     private val dailyRateRepository: DailyRateRepository,
 ) {
 
+    @Caching(evict = [
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_RATES], allEntries = true),
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_SEARCH], allEntries = true),
+    ])
     @Transactional
     fun register(command: RegisterRatePlanCommand): Long {
         if (!roomTypeRepository.existsById(command.roomTypeId)) {
@@ -34,6 +41,10 @@ class RatePlanUseCase(
         return ratePlanRepository.save(ratePlan).id
     }
 
+    @Caching(evict = [
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_RATES], allEntries = true),
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_SEARCH], allEntries = true),
+    ])
     @Transactional
     fun update(ratePlanId: Long, command: UpdateRatePlanCommand) {
         val ratePlan = findById(ratePlanId)
@@ -45,6 +56,10 @@ class RatePlanUseCase(
         )
     }
 
+    @Caching(evict = [
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_RATES], allEntries = true),
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_SEARCH], allEntries = true),
+    ])
     @Transactional
     fun setDailyRate(ratePlanId: Long, date: LocalDate, price: BigDecimal) {
         val existing = dailyRateRepository.findByRatePlanIdAndDate(ratePlanId, date)
