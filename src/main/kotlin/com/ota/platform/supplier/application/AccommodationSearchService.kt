@@ -1,7 +1,5 @@
 package com.ota.platform.supplier.application
 
-import com.ota.platform.supplier.adapter.InternalAccommodationAdapter
-import com.ota.platform.supplier.adapter.MockSupplierAAdapter
 import com.ota.platform.supplier.port.AccommodationDetailResult
 import com.ota.platform.supplier.port.AccommodationPort
 import com.ota.platform.supplier.port.AccommodationRateResult
@@ -17,12 +15,8 @@ import java.time.LocalDate
  */
 @Service
 class AccommodationSearchService(
-    private val internalAdapter: InternalAccommodationAdapter,
-    private val mockSupplierAAdapter: MockSupplierAAdapter,
+    private val adapters: List<AccommodationPort>,
 ) {
-    private val adapters: List<AccommodationPort>
-        get() = listOf(internalAdapter, mockSupplierAAdapter)
-
     @Cacheable(
         cacheNames = ["accommodation-search"],
         key = "#query.city + ':' + #query.checkIn + ':' + #query.checkOut + ':' + #query.guestCount",
@@ -40,8 +34,8 @@ class AccommodationSearchService(
         key = "#accommodationId + ':' + #checkIn + ':' + #checkOut",
     )
     fun getRates(accommodationId: String, checkIn: LocalDate, checkOut: LocalDate): List<AccommodationRateResult> {
-        val adapter = resolveAdapter(accommodationId)
-        return adapter.getRates(accommodationId, checkIn, checkOut)
+        return resolveAdapter(accommodationId)
+            .getRates(accommodationId, checkIn, checkOut)
             .sortedBy { it.totalPrice }
     }
 
@@ -53,9 +47,7 @@ class AccommodationSearchService(
         return resolveAdapter(accommodationId).getDetail(accommodationId)
     }
 
-    private fun resolveAdapter(accommodationId: String): AccommodationPort = when {
-        accommodationId.startsWith("INTERNAL:") -> internalAdapter
-        accommodationId.startsWith("SUPPLIER_A:") -> mockSupplierAAdapter
-        else -> throw IllegalArgumentException("알 수 없는 숙소 ID 형식: $accommodationId")
-    }
+    private fun resolveAdapter(accommodationId: String): AccommodationPort =
+        adapters.firstOrNull { it.canHandle(accommodationId) }
+            ?: throw IllegalArgumentException("알 수 없는 숙소 ID 형식: $accommodationId")
 }

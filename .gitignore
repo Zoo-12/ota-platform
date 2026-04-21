@@ -49,3 +49,4 @@ application-local.yml
 
 ### Performance test output ###
 performance/results/*.json
+.claude/settings.local.json

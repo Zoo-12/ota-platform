@@ -4,6 +4,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 
 interface AccommodationPort {
+    fun canHandle(accommodationId: String): Boolean
     fun search(query: AccommodationSearchQuery): List<AccommodationSearchResult>
     fun getRates(accommodationId: String, checkIn: LocalDate, checkOut: LocalDate): List<AccommodationRateResult>
     fun getDetail(accommodationId: String): AccommodationDetailResult

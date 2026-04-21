@@ -20,6 +20,8 @@ import java.time.LocalDate
 @Component
 class MockSupplierAAdapter : AccommodationPort {
 
+    override fun canHandle(accommodationId: String) = accommodationId.startsWith("SUPPLIER_A:")
+
     override fun search(query: AccommodationSearchQuery): List<AccommodationSearchResult> {
         // Mock: 서울 검색 시에만 결과 반환
         if (!query.city.contains("서울")) return emptyList()

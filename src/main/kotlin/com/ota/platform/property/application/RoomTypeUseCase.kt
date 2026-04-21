@@ -1,12 +1,11 @@
 package com.ota.platform.property.application
 
 import com.ota.platform.common.exception.NotFoundException
-import com.ota.platform.inventory.domain.RoomInventory
-import com.ota.platform.inventory.infrastructure.RoomInventoryRepository
 import com.ota.platform.property.domain.BedType
 import com.ota.platform.property.domain.RoomType
 import com.ota.platform.property.infrastructure.PropertyRepository
 import com.ota.platform.property.infrastructure.RoomTypeRepository
+import com.ota.platform.property.port.InventoryPort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -15,7 +14,7 @@ import java.time.LocalDate
 class RoomTypeUseCase(
     private val roomTypeRepository: RoomTypeRepository,
     private val propertyRepository: PropertyRepository,
-    private val roomInventoryRepository: RoomInventoryRepository,
+    private val inventoryPort: InventoryPort,
 ) {
 
     @Transactional
@@ -36,7 +35,12 @@ class RoomTypeUseCase(
 
         // 등록 시 기본 재고(0개) 초기화 — 파트너가 이후 재고 설정
         if (command.initInventoryFrom != null && command.initInventoryTo != null) {
-            initInventories(saved.id, command.totalCount ?: 0, command.initInventoryFrom, command.initInventoryTo)
+            inventoryPort.initInventories(
+                roomTypeId = saved.id,
+                totalCount = command.totalCount ?: 0,
+                from = command.initInventoryFrom,
+                to = command.initInventoryTo,
+            )
         }
         return saved.id
     }
@@ -61,18 +65,6 @@ class RoomTypeUseCase(
     private fun findById(roomTypeId: Long): RoomType =
         roomTypeRepository.findById(roomTypeId)
             .orElseThrow { NotFoundException("RoomType", roomTypeId) }
-
-    private fun initInventories(roomTypeId: Long, totalCount: Int, from: LocalDate, to: LocalDate) {
-        val inventories = from.datesUntil(to.plusDays(1)).map { date ->
-            RoomInventory(
-                roomTypeId = roomTypeId,
-                date = date,
-                totalCount = totalCount,
-                availableCount = totalCount,
-            )
-        }.toList()
-        roomInventoryRepository.saveAll(inventories)
-    }
 }
 
 data class RegisterRoomTypeCommand(

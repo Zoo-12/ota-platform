@@ -28,6 +28,8 @@ class InternalAccommodationAdapter(
     private val rateCalculationService: RateCalculationService,
 ) : AccommodationPort {
 
+    override fun canHandle(accommodationId: String) = accommodationId.startsWith("INTERNAL:")
+
     @Transactional(readOnly = true)
     override fun search(query: AccommodationSearchQuery): List<AccommodationSearchResult> {
         val properties = propertyRepository.findAllByStatusAndAddressCity(
