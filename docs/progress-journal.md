@@ -218,15 +218,113 @@
 
 ---
 
+---
+
+## Day 3 - 이벤트 기반 아키텍처 / 성능 테스트 / UI 개선
+
+### 수행 내용
+- `BookingCreatedEvent`, `BookingCancelledEvent` 도메인 이벤트 클래스 작성
+- `CreateBookingUseCase`, `CancelBookingUseCase`에 `ApplicationEventPublisher` 연동
+- `@TransactionalEventListener` + `@Async` 리스너 구현 (예약 후처리 비동기 처리)
+- k6를 활용한 성능 테스트 작성 및 실행 (`docs/performance-test.md`)
+  - 요금 조회 캐시 효과 테스트 (VU 50명 × 30초, 379 req/s, p95 24ms)
+  - 동시 예약 부하 테스트 (VU 20명, 재고 정합성 검증)
+- Next.js 프론트엔드 통합: Spring Boot static 리소스로 빌드 산출물 포함
+- Extranet UI 개선: 각 단계 하단 다음 버튼, 파트너 미선택 안내 문구
+- TraceBar 드래그 리사이즈, Request/Response Body 상세 펼치기 기능
+- 화면 내 영어 enum 값 전체 한국어 치환 (`labels.ts` 유틸)
+
+### 의사결정
+
+**[이벤트 리스너에서 Virtual Thread 선택]**
+- 선택: `@Async` + `spring.threads.virtual.enabled: true`
+- 이유: JDK 21 환경에서 코루틴 사용도 고려했으나, 단순 이벤트 후처리 수준에서 코루틴은 오버엔지니어링이다. Virtual Thread 활성화 한 줄로 `@Async`가 Virtual Thread 위에서 실행되어 블로킹 I/O 비용을 줄일 수 있다.
+
+**[@TransactionalEventListener 사용 이유]**
+- 선택: `@EventListener` 대신 `@TransactionalEventListener(phase = AFTER_COMMIT)`
+- 이유: 예약 트랜잭션이 커밋되기 전에 이벤트가 처리되면 예약이 최종 실패하더라도 이메일/알림이 발송되는 문제가 생긴다. 커밋 후 실행을 보장해야 후처리의 신뢰성이 높아진다.
+
+**[프론트를 Spring Boot static 리소스로 통합]**
+- 선택: Next.js `output: 'export'`로 정적 빌드 후 `src/main/resources/static`에 포함
+- 이유: 서버를 하나만 실행하면 프론트+백엔드 모두 접근 가능하다. 별도 포트(3000)로 운영하면 CORS 설정이 복잡해지고 실행 절차가 늘어난다. 데모 및 평가 환경에서 단순성이 더 중요하다.
+
+**[성능 테스트 도구 선택]**
+- 선택: k6
+- 이유: 스크립트 기반으로 시나리오를 코드로 관리할 수 있고, VU/RPS 제어가 직관적이다. Gatling 대비 설정이 가볍고 CI 통합도 용이하다.
+
+---
+
+## Day 4 - 테스트 보강 / 버그 수정 / 파트너 승인 플로우
+
+### 수행 내용
+- 도메인 단위 테스트 작성: `RoomInventoryTest`, `PropertyTest`
+- 예약 엣지 케이스 통합 테스트: `BookingEdgeCaseIntegrationTest`
+- `start-local.sh` 실행 방식 단순화 (프론트엔드 빌드 단계 분리)
+- Swagger UI가 Petstore 기본 예제를 표시하는 버그 수정
+- 브라우저 새로고침 시 `/admin/`, `/extranet/` 경로 500 오류 수정
+- 파트너 승인 플로우 구현: Extranet 등록 → Admin 승인 → 다음 단계 진행
+
+### 의사결정
+
+**[단위 테스트와 통합 테스트 분리 전략]**
+- 선택: Spring 컨텍스트 없이 검증 가능한 도메인 로직은 순수 단위 테스트(`RoomInventoryTest`, `PropertyTest`), 레이어 간 연동이 필요한 흐름은 통합 테스트
+- 이유: 통합 테스트는 컨텍스트 로딩 비용이 크다. 도메인 규칙(재고 차감 로직, 엔티티 상태 전환 등)은 DB 없이도 검증 가능하므로 단위 테스트로 분리하면 피드백 속도가 빠르다.
+
+**[파트너 승인 UX 흐름 설계]**
+- 선택: 파트너 등록 → 모달 안내("Admin 승인 필요") → Admin 화면으로 이동 → 승인 → 돌아와서 파트너 선택
+- 이유: 승인 없이 다음 단계로 진행하면 미승인 파트너 데이터가 생성될 수 있다. 단계 진입 전 승인 여부를 프론트에서 검증하는 것이 더 명확한 UX다.
+
+### 기술적 문제 해결
+
+**문제 1: Swagger UI가 Petstore 예제 표시**
+- 원인: `SpaRoutingFilter`가 `/api-docs`, `/swagger-ui` 경로도 SPA 라우팅 대상으로 가로채 `/index.html`로 포워딩
+- 해결: 필터에서 `/api-docs`, `/swagger-ui`, `/actuator` 경로를 명시적으로 제외
+
+**문제 2: SPA 경로 새로고침 시 500 오류**
+- 원인: `@Controller`에서 `/index.html`로 포워딩 시 필터가 재진입해 무한 포워딩 발생
+- 해결: `OncePerRequestFilter` 방식으로 전환하여 동일 요청 내 재진입 방지
+
+---
+
+## Day 5 - 도메인 간 의존성 리팩터링 / 아키텍처 설계 정리
+
+### 수행 내용
+- 크로스 도메인 Repository 직접 참조 전수 조사
+- 도메인 간 의존성 전체를 포트/어댑터 패턴으로 분리
+  - `booking/port`: `RoomTypePort`, `RatePlanPort`, `InventoryPort`
+  - `booking/adapter`: 각 포트의 JPA 구현체
+  - `property/port`: `InventoryPort`
+  - `property/adapter`: `InventoryAdapter`
+- `AccommodationSearchService`의 구체 Adapter 직접 주입 문제 수정 (`canHandle()` 패턴으로 통일)
+- 캐시 무효화(`@CacheEvict`) 누락 항목 수정 및 캐시별 TTL 분리
+- 캐시 이름 상수 추출 (`CacheNames` 오브젝트)
+- MSA 전환 시 서비스 경계 설계 검토
+
+### 의사결정
+
+**[포트/어댑터 패턴 분리 범위]**
+- 선택: booking↔property/inventory, property↔inventory 간 의존성을 포트/어댑터로 분리. `InternalAccommodationAdapter`의 property/inventory 직접 참조는 현행 유지
+- 이유: `InternalAccommodationAdapter` 자체가 "supplier ↔ property 경계를 넘는 어댑터" 역할이므로 내부에 추가 추상화 레이어를 두는 것은 오버엔지니어링이다. 나머지 크로스 도메인 의존은 인프라 레이어 직접 참조이므로 분리가 필요하다.
+
+**[MSA 분리 시 서비스 경계 결정]**
+- 선택: `[booking 서비스]` | `[property + inventory + supplier 서비스]` 2개 서비스로 분리
+- 이유: supplier의 `InternalAccommodationAdapter`가 property/inventory 데이터를 직접 읽는 구조상 세 도메인은 자연스럽게 같은 배포 단위에 속한다. booking은 예약 트랜잭션만 담당해 분리 경계가 명확하다. 포트/어댑터로 분리해두면 MSA 전환 시 레포지토리 구현체를 HTTP 어댑터로 교체하는 것만으로 전환 가능하다.
+
+**[캐시 TTL 분리 전략]**
+- 선택: 숙소 상세(긴 TTL) / 검색 결과(중간 TTL) / 요금(짧은 TTL) 분리
+- 이유: 데이터 변경 빈도가 다르다. 요금과 재고는 자주 바뀌므로 TTL을 짧게 유지해야 캐시 오염을 방지할 수 있다. 상세 정보는 상대적으로 변경이 적어 긴 TTL이 적합하다.
+
+---
+
 ## 미구현 항목 및 이유
 
 | 항목 | 미구현 이유 |
 |------|-----------|
 | 결제(Payment) 연동 | PG사 연동 복잡도 높음. 비즈니스 핵심 흐름(예약/취소)에 집중하기 위해 제외 |
-| JWT 인증/인가 | 인증 구현보다 도메인 로직 완성도를 높이는 것이 우선이라 판단 |
+| JWT 인증/인가 | 인증 구현보다 도메인 로직 완성도를 높이는 것이 우선이라 판단. 설계는 `architecture.md`에 기술 |
 | 동적 가격 산정(RMS) | `DailyRate` 직접 입력으로 대체. 자동 가격 산정 알고리즘은 구현 범위 초과 |
-| 알림(Notification) | 이벤트 기반 설계(`Booking` 상태 변경 → 이벤트 발행)는 `architecture.md`에 설계만 기술 |
-| 성능 테스트 | 기능 구현 및 통합 테스트 완성 후 시간 여유가 있을 때 추가 예정 |
+| 알림(Notification) | 이벤트 기반 구조(`@TransactionalEventListener`)는 구현 완료. 실제 이메일/푸시 발송 연동은 제외 |
+| 성능 테스트 | ~~예정~~ → **완료** (`docs/performance-test.md`). k6로 캐시 효과 및 동시 예약 부하 검증 |
 
 ---
 
@@ -236,8 +334,12 @@
 
 핵심 원칙: **AI가 제안한 내용을 그대로 사용하지 않고, 각 결정마다 직접 검토 후 수정 또는 채택했다.**
 
-주요 수정 사항:
+주요 수정 및 판단 사항:
 - AI 제안 마이크로서비스 → 모듈형 모놀리스로 변경 (구현 범위 및 복잡도 고려)
 - AI 제안 PostgreSQL → MySQL로 변경 (인프라 일관성)
 - AI 생성 테스트 픽스처의 `System.nanoTime()` → `(1..999999).random()`으로 수정 (실제 실행 시 발생한 버그)
 - Hibernate 6 + Kotlin `allOpen` 조합에서 발생하는 `private set` 제약 → `protected set` 패턴 적용 (컴파일 에러 직접 해결)
+- AI 제안 SlowQueryLog AOP 구현 → 필터 단 슬로우 요청 감지로 단순화 (중복 제거)
+- AI 제안 `@Async` 그대로 수용 → Virtual Thread 활성화로 JDK 21 기능 활용 (직접 질문하여 결정)
+- 포트/어댑터 분리 범위에서 `InternalAccommodationAdapter` 제외 결정 (추가 추상화가 오버엔지니어링이라 판단)
+- MSA 서비스 경계를 2개(booking / property+inventory+supplier)로 직접 설계
