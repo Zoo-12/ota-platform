@@ -12,7 +12,7 @@ import jakarta.persistence.Table
 import java.time.LocalTime
 
 @Entity
-@Table(name = "properties")
+@Table(name = "property")
 class Property(
     partnerId: Long,
     name: String,

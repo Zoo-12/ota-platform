@@ -11,7 +11,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 
 @Entity
-@Table(name = "external_suppliers")
+@Table(name = "external_supplier")
 class ExternalSupplier(
     name: String,
     adapterType: SupplierAdapterType,

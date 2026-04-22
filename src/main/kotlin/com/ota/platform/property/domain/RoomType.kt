@@ -11,7 +11,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 
 @Entity
-@Table(name = "room_types")
+@Table(name = "room_type")
 class RoomType(
     propertyId: Long,
     name: String,

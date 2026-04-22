@@ -15,7 +15,7 @@ import java.time.LocalDate
  * 요금 조회 시 DailyRate 우선, 없으면 RatePlan.basePrice 사용.
  */
 @Entity
-@Table(name = "daily_rates")
+@Table(name = "daily_rate")
 class DailyRate(
     ratePlanId: Long,
     date: LocalDate,

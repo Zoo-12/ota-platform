@@ -1,9 +1,9 @@
 -- ============================================================
--- V1: 초기 스키마 생성
+-- V1: 초기 스키마 생성 (단수형 테이블명 적용)
 -- ============================================================
 
 -- 파트너
-CREATE TABLE partners
+CREATE TABLE partner
 (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE partners
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 숙소
-CREATE TABLE properties
+CREATE TABLE property
 (
     id               BIGINT AUTO_INCREMENT PRIMARY KEY,
     partner_id       BIGINT       NOT NULL,
@@ -33,14 +33,14 @@ CREATE TABLE properties
     check_out_time   TIME,
     created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_properties_partner FOREIGN KEY (partner_id) REFERENCES partners (id)
+    CONSTRAINT fk_property_partner FOREIGN KEY (partner_id) REFERENCES partner (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE INDEX idx_properties_status_city ON properties (status, address_city);
-CREATE INDEX idx_properties_partner ON properties (partner_id);
+CREATE INDEX idx_property_status_city ON property (status, address_city);
+CREATE INDEX idx_property_partner ON property (partner_id);
 
 -- 객실 타입
-CREATE TABLE room_types
+CREATE TABLE room_type
 (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
     property_id   BIGINT       NOT NULL,
@@ -52,13 +52,13 @@ CREATE TABLE room_types
     amenities     JSON,
     created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_room_types_property FOREIGN KEY (property_id) REFERENCES properties (id)
+    CONSTRAINT fk_room_type_property FOREIGN KEY (property_id) REFERENCES property (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE INDEX idx_room_types_property ON room_types (property_id);
+CREATE INDEX idx_room_type_property ON room_type (property_id);
 
 -- 요금 플랜
-CREATE TABLE rate_plans
+CREATE TABLE rate_plan
 (
     id                 BIGINT AUTO_INCREMENT PRIMARY KEY,
     room_type_id       BIGINT         NOT NULL,
@@ -69,13 +69,13 @@ CREATE TABLE rate_plans
     is_active          TINYINT(1)     NOT NULL DEFAULT 1,
     created_at         DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at         DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_rate_plans_room_type FOREIGN KEY (room_type_id) REFERENCES room_types (id)
+    CONSTRAINT fk_rate_plan_room_type FOREIGN KEY (room_type_id) REFERENCES room_type (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE INDEX idx_rate_plans_room_type ON rate_plans (room_type_id);
+CREATE INDEX idx_rate_plan_room_type ON rate_plan (room_type_id);
 
 -- 날짜별 요금 (base_price 오버라이드)
-CREATE TABLE daily_rates
+CREATE TABLE daily_rate
 (
     id           BIGINT AUTO_INCREMENT PRIMARY KEY,
     rate_plan_id BIGINT         NOT NULL,
@@ -83,12 +83,12 @@ CREATE TABLE daily_rates
     price        DECIMAL(12, 2) NOT NULL,
     created_at   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_daily_rates_rate_plan FOREIGN KEY (rate_plan_id) REFERENCES rate_plans (id),
-    CONSTRAINT uq_daily_rates UNIQUE (rate_plan_id, date)
+    CONSTRAINT fk_daily_rate_rate_plan FOREIGN KEY (rate_plan_id) REFERENCES rate_plan (id),
+    CONSTRAINT uq_daily_rate UNIQUE (rate_plan_id, date)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 날짜별 재고 (핵심 테이블 — 예약 시 SELECT FOR UPDATE 대상)
-CREATE TABLE room_inventories
+CREATE TABLE room_inventory
 (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     room_type_id    BIGINT   NOT NULL,
@@ -100,16 +100,16 @@ CREATE TABLE room_inventories
     max_stay        INT,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_room_inventories_room_type FOREIGN KEY (room_type_id) REFERENCES room_types (id),
-    CONSTRAINT uq_room_inventories UNIQUE (room_type_id, date),
+    CONSTRAINT fk_room_inventory_room_type FOREIGN KEY (room_type_id) REFERENCES room_type (id),
+    CONSTRAINT uq_room_inventory UNIQUE (room_type_id, date),
     CONSTRAINT chk_available_count CHECK (available_count >= 0),
     CONSTRAINT chk_total_count CHECK (total_count >= 0)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE INDEX idx_room_inventories_room_date ON room_inventories (room_type_id, date, available_count);
+CREATE INDEX idx_room_inventory_room_date ON room_inventory (room_type_id, date, available_count);
 
 -- 고객
-CREATE TABLE customers
+CREATE TABLE customer
 (
     id         BIGINT AUTO_INCREMENT PRIMARY KEY,
     email      VARCHAR(255) NOT NULL UNIQUE,
@@ -120,7 +120,7 @@ CREATE TABLE customers
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- 예약
-CREATE TABLE bookings
+CREATE TABLE booking
 (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     customer_id     BIGINT         NOT NULL,
@@ -139,17 +139,17 @@ CREATE TABLE bookings
     cancel_reason   TEXT,
     created_at      DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_bookings_customer  FOREIGN KEY (customer_id)  REFERENCES customers (id),
-    CONSTRAINT fk_bookings_property  FOREIGN KEY (property_id)  REFERENCES properties (id),
-    CONSTRAINT fk_bookings_room_type FOREIGN KEY (room_type_id) REFERENCES room_types (id),
-    CONSTRAINT fk_bookings_rate_plan FOREIGN KEY (rate_plan_id) REFERENCES rate_plans (id)
+    CONSTRAINT fk_booking_customer  FOREIGN KEY (customer_id)  REFERENCES customer (id),
+    CONSTRAINT fk_booking_property  FOREIGN KEY (property_id)  REFERENCES property (id),
+    CONSTRAINT fk_booking_room_type FOREIGN KEY (room_type_id) REFERENCES room_type (id),
+    CONSTRAINT fk_booking_rate_plan FOREIGN KEY (rate_plan_id) REFERENCES rate_plan (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE INDEX idx_bookings_customer ON bookings (customer_id, status);
-CREATE INDEX idx_bookings_property ON bookings (property_id, check_in, check_out);
+CREATE INDEX idx_booking_customer ON booking (customer_id, status);
+CREATE INDEX idx_booking_property ON booking (property_id, check_in, check_out);
 
 -- 예약 날짜별 상세 (재고 차감 추적)
-CREATE TABLE booking_rooms
+CREATE TABLE booking_room
 (
     id                BIGINT AUTO_INCREMENT PRIMARY KEY,
     booking_id        BIGINT         NOT NULL,
@@ -157,14 +157,14 @@ CREATE TABLE booking_rooms
     date              DATE           NOT NULL,
     price_snapshot    DECIMAL(12, 2) NOT NULL,
     created_at        DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_booking_rooms_booking   FOREIGN KEY (booking_id)        REFERENCES bookings (id),
-    CONSTRAINT fk_booking_rooms_inventory FOREIGN KEY (room_inventory_id) REFERENCES room_inventories (id)
+    CONSTRAINT fk_booking_room_booking   FOREIGN KEY (booking_id)        REFERENCES booking (id),
+    CONSTRAINT fk_booking_room_inventory FOREIGN KEY (room_inventory_id) REFERENCES room_inventory (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
-CREATE INDEX idx_booking_rooms_booking ON booking_rooms (booking_id);
+CREATE INDEX idx_booking_room_booking ON booking_room (booking_id);
 
 -- 외부 공급사
-CREATE TABLE external_suppliers
+CREATE TABLE external_supplier
 (
     id           BIGINT AUTO_INCREMENT PRIMARY KEY,
     name         VARCHAR(100) NOT NULL,
@@ -176,5 +176,5 @@ CREATE TABLE external_suppliers
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- Mock Supplier 초기 데이터
-INSERT INTO external_suppliers (name, adapter_type, api_endpoint, is_active)
+INSERT INTO external_supplier (name, adapter_type, api_endpoint, is_active)
 VALUES ('Mock Supplier A', 'MOCK_SUPPLIER_A', 'http://mock-supplier-a.internal/api', 1);

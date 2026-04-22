@@ -17,7 +17,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "bookings")
+@Table(name = "booking")
 class Booking(
     customerId: Long,
     propertyId: Long,

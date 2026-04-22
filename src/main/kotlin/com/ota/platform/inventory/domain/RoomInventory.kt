@@ -16,7 +16,7 @@ import java.time.LocalDate
  * 예약 시 SELECT FOR UPDATE로 잠금 후 available_count 차감.
  */
 @Entity
-@Table(name = "room_inventories")
+@Table(name = "room_inventory")
 class RoomInventory(
     roomTypeId: Long,
     date: LocalDate,

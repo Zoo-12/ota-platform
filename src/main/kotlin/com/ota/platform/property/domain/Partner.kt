@@ -12,7 +12,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 
 @Entity
-@Table(name = "partners")
+@Table(name = "partner")
 class Partner(
     name: String,
     email: String,

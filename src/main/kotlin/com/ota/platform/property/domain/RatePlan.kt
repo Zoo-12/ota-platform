@@ -12,7 +12,7 @@ import jakarta.persistence.Table
 import java.math.BigDecimal
 
 @Entity
-@Table(name = "rate_plans")
+@Table(name = "rate_plan")
 class RatePlan(
     roomTypeId: Long,
     name: String,

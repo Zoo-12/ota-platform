@@ -20,7 +20,7 @@ import java.time.LocalDateTime
  * 불변 레코드이므로 BaseEntity(updated_at) 미사용.
  */
 @Entity
-@Table(name = "booking_rooms")
+@Table(name = "booking_room")
 class BookingRoom(
     booking: Booking,
     roomInventoryId: Long,
