@@ -18,11 +18,11 @@ data class AccommodationSearchQuery(
 )
 
 data class AccommodationSearchResult(
-    val accommodationId: String,   // 공급사별 고유 ID (내부: "INTERNAL:{id}", 외부: "SUPPLIER_A:{id}") — SupplierPrefixes 참고
+    val accommodationId: String,
     val name: String,
     val category: String,
     val addressCity: String,
-    val minPrice: BigDecimal,      // 해당 기간 최저가
+    val minPrice: BigDecimal,
     val source: AccommodationSource,
 )
 

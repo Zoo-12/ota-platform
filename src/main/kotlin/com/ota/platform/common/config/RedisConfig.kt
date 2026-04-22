@@ -30,7 +30,6 @@ class RedisConfig {
 
     @Bean
     fun cacheManager(connectionFactory: RedisConnectionFactory): RedisCacheManager {
-        // Jackson2JsonRedisSerializer<Any> + @class 타입 프로퍼티로 역직렬화 시 타입 정보 보존
         val serializer = Jackson2JsonRedisSerializer(cacheObjectMapper(), Any::class.java)
 
         val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()

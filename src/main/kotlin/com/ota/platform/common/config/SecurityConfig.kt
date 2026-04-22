@@ -27,7 +27,6 @@ class SecurityConfig {
                         "/api-docs/**",
                         "/actuator/**",
                     ).permitAll()
-                    // 과제 범위: 인증 없이 접근 허용 (인증/인가 설계는 docs에 별도 기술)
                     .anyRequest().permitAll()
             }
         return http.build()
