@@ -8,7 +8,6 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import jakarta.persistence.Version
 import java.time.LocalDate
 
 /**
@@ -55,11 +54,6 @@ class RoomInventory(
         protected set
 
     var maxStay: Int? = null
-        protected set
-
-    @Version
-    @Column(nullable = false)
-    var version: Long = 0
         protected set
 
     fun isAvailable(): Boolean = !stopSell && availableCount > 0

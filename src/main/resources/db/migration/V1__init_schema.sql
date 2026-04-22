@@ -98,7 +98,6 @@ CREATE TABLE room_inventories
     stop_sell       TINYINT(1) NOT NULL DEFAULT 0,
     min_stay        INT               DEFAULT 1,
     max_stay        INT,
-    version         BIGINT   NOT NULL DEFAULT 0,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_room_inventories_room_type FOREIGN KEY (room_type_id) REFERENCES room_types (id),

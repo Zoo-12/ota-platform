@@ -177,7 +177,6 @@ RoomInventory
   - totalCount     (총 객실 수)
   - availableCount (가용 객실 수)
   - stopSell       (강제 판매 중단 여부)
-  - version        (낙관적 락용, 현재는 비관적 락 사용)
 ```
 
 **인덱스:** `(room_type_id, date)` UNIQUE — 날짜별 재고는 1행만 존재
@@ -225,7 +224,6 @@ BookingRoom
 비관적 락(`SELECT FOR UPDATE`)을 선택한 이유:
 - 초과예약(overbooking)은 절대 허용 불가 → 강한 일관성 필요
 - 예약은 숙소 검색/요금 조회에 비해 트래픽이 현저히 낮을 것으로 예상됨 → 락 경합 비용이 낮아 비관적 락으로 처리
-- 낙관적 락은 충돌 시 재시도 로직 필요 → 사용자 경험 불리
 
 **향후 트래픽 증가 시 전환 전략:**
 

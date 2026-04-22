@@ -73,8 +73,7 @@
 │  ── NON_REFUNDABLE        │ │ stop_sell                            │ ── 강제 판매 중단
 │  ── PARTIAL_REFUND        │ │ min_stay                             │ ── 최소 숙박일
 │ breakfast_included        │ │ max_stay                             │ ── 최대 숙박일
-│ base_price                │ │ version                              │ ── 낙관적 락용
-│ is_active                 │ │ created_at                           │
+│ base_price                │ │ created_at                           │
 │ created_at                │ │ updated_at                           │
 │ updated_at                │ │                                      │
 └────────┬──────────────────┘ │ UNIQUE (room_type_id, date)          │
@@ -300,7 +299,6 @@ erDiagram
         int total_count
         int available_count
         boolean stop_sell
-        int version
     }
     daily_rates {
         bigint id PK
@@ -318,6 +316,7 @@ erDiagram
         bigint customer_id FK
         bigint property_id FK
         bigint room_type_id FK
+        bigint rate_plan_id FK
         varchar status
         date check_in
         date check_out
