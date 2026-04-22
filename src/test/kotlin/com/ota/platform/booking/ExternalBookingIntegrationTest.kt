@@ -7,10 +7,15 @@ import com.ota.platform.booking.application.CreateExternalBookingUseCase
 import com.ota.platform.booking.application.CreateBookingCommand
 import com.ota.platform.booking.application.CreateBookingUseCase
 import com.ota.platform.booking.application.GetBookingDetailUseCase
+import com.ota.platform.booking.application.CancelExternalBookingCommand
+import com.ota.platform.booking.application.CancelExternalBookingUseCase
 import com.ota.platform.booking.domain.BookingKeyType
+import com.ota.platform.booking.domain.ExternalBookingStatus
 import com.ota.platform.booking.infrastructure.ExternalBookingRepository
+import com.ota.platform.common.exception.BadRequestException
 import com.ota.platform.supplier.port.AccommodationSource
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,6 +27,7 @@ class ExternalBookingIntegrationTest : AbstractIntegrationTest() {
 
     @Autowired lateinit var fixtures: TestFixtures
     @Autowired lateinit var createExternalBookingUseCase: CreateExternalBookingUseCase
+    @Autowired lateinit var cancelExternalBookingUseCase: CancelExternalBookingUseCase
     @Autowired lateinit var createBookingUseCase: CreateBookingUseCase
     @Autowired lateinit var getBookingDetailUseCase: GetBookingDetailUseCase
     @Autowired lateinit var externalBookingRepository: ExternalBookingRepository
@@ -56,7 +62,7 @@ class ExternalBookingIntegrationTest : AbstractIntegrationTest() {
         assertThat(saved.customerId).isEqualTo(customer.id)
         assertThat(saved.source).isEqualTo(AccommodationSource.SUPPLIER_A.name)
         assertThat(saved.externalBookingNo).startsWith("SA-")
-        assertThat(saved.status).isEqualTo("CONFIRMED")
+        assertThat(saved.status).isEqualTo(ExternalBookingStatus.CONFIRMED)
     }
 
     @Test
@@ -158,5 +164,87 @@ class ExternalBookingIntegrationTest : AbstractIntegrationTest() {
         // createdAt 내림차순 정렬 검증
         val createdAts = results.map { it.createdAt }
         assertThat(createdAts).isSortedAccordingTo(Comparator.reverseOrder())
+    }
+
+    @Test
+    @DisplayName("외부 예약 취소 성공 - status가 CANCELLED로 변경된다")
+    fun `외부 예약 취소 성공`() {
+        val customer = fixtures.createCustomer()
+
+        val bookingKey = createExternalBookingUseCase.create(
+            CreateExternalBookingCommand(
+                customerId = customer.id,
+                accommodationId = "SUPPLIER_A:ACC-001",
+                checkIn = checkIn,
+                checkOut = checkOut,
+                guestCount = 1,
+                totalPrice = BigDecimal("100000"),
+                guestName = "홍길동",
+                guestPhone = null,
+            ),
+        )
+
+        val (_, bookingId) = BookingKeyType.parse(bookingKey)
+        cancelExternalBookingUseCase.cancel(
+            CancelExternalBookingCommand(customerId = customer.id, bookingId = bookingId),
+        )
+
+        val saved = externalBookingRepository.findById(bookingId).orElseThrow()
+        assertThat(saved.status).isEqualTo(ExternalBookingStatus.CANCELLED)
+    }
+
+    @Test
+    @DisplayName("이미 취소된 외부 예약을 다시 취소하면 BadRequestException 발생")
+    fun `중복 취소 시 예외`() {
+        val customer = fixtures.createCustomer()
+
+        val bookingKey = createExternalBookingUseCase.create(
+            CreateExternalBookingCommand(
+                customerId = customer.id,
+                accommodationId = "SUPPLIER_A:ACC-001",
+                checkIn = checkIn,
+                checkOut = checkOut,
+                guestCount = 1,
+                totalPrice = null,
+                guestName = "홍길동",
+                guestPhone = null,
+            ),
+        )
+
+        val (_, bookingId) = BookingKeyType.parse(bookingKey)
+        val command = CancelExternalBookingCommand(customerId = customer.id, bookingId = bookingId)
+        cancelExternalBookingUseCase.cancel(command)
+
+        assertThatThrownBy { cancelExternalBookingUseCase.cancel(command) }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("이미 취소된 예약")
+    }
+
+    @Test
+    @DisplayName("다른 고객의 외부 예약 취소 시도 시 BadRequestException 발생")
+    fun `다른 고객의 예약 취소 실패`() {
+        val customer = fixtures.createCustomer()
+        val otherCustomer = fixtures.createCustomer()
+
+        val bookingKey = createExternalBookingUseCase.create(
+            CreateExternalBookingCommand(
+                customerId = customer.id,
+                accommodationId = "SUPPLIER_A:ACC-001",
+                checkIn = checkIn,
+                checkOut = checkOut,
+                guestCount = 1,
+                totalPrice = null,
+                guestName = "홍길동",
+                guestPhone = null,
+            ),
+        )
+
+        val (_, bookingId) = BookingKeyType.parse(bookingKey)
+        assertThatThrownBy {
+            cancelExternalBookingUseCase.cancel(
+                CancelExternalBookingCommand(customerId = otherCustomer.id, bookingId = bookingId),
+            )
+        }.isInstanceOf(BadRequestException::class.java)
+            .hasMessageContaining("권한")
     }
 }
