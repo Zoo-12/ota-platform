@@ -95,9 +95,13 @@ Partner (파트너)
                                          │ SELECT FOR UPDATE
 Customer (고객)                           │
   │                                      │
-  └──1:N──▶ Booking (예약) ───────────────┘
-                │
-                └──1:N──▶ BookingRoom (예약 객실 상세)
+  ├──1:N──▶ Booking (예약) ───────────────┘
+  │               │
+  │               └──1:N──▶ BookingRoom (예약 객실 상세)
+  │
+  └──1:N──▶ ExternalBooking (외부 공급사 예약)
+                 - externalBookingNo (공급사 발급 예약 번호)
+                 - source (SUPPLIER_A 등)
 
 
 ExternalSupplier (외부 공급사)
@@ -202,9 +206,18 @@ BookingRoom
   - roomTypeId, ratePlanId
   - date
   - priceSnapshot  (예약 시점 가격 스냅샷)
+
+ExternalBooking
+  - id, customerId
+  - accommodationId   (공급사 접두사 포함, 예: "SUPPLIER_A:MOCK-001")
+  - externalBookingNo (공급사가 발급한 예약 번호, 예: "SA-A1B2C3D4")
+  - source            (AccommodationSource enum 이름, 예: "SUPPLIER_A")
+  - checkIn, checkOut, guestCount, totalPrice, guestName
+  - status: CONFIRMED (현재 외부 예약 취소는 미구현)
+  - createdAt
 ```
 
-**예약 흐름:**
+**내부 예약 흐름:**
 
 ```
 1. 고객이 체크인/체크아웃 날짜 선택
@@ -217,6 +230,23 @@ BookingRoom
 취소 시:
 1. Booking 상태 → CANCELLED
 2. RoomInventory.availableCount 복원
+```
+
+**외부 공급사 예약 흐름:**
+
+```
+1. 고객이 공급사 숙소의 요금 선택
+2. POST /api/customer/bookings 호출 (accommodationId에 공급사 prefix 포함)
+3. CustomerBookingController → CreateExternalBookingUseCase
+4. accommodationId prefix로 source 판별 (SupplierPrefixes, AccommodationSource 상수 활용)
+5. externalBookingNo 생성 (예: "SA-A1B2C3D4")
+6. ExternalBooking 저장 → bookingKey "EXT-{id}" 반환
+   (실제 공급사 API 호출은 FeignClient 구현 시 이 단계에서 추가)
+
+예약 목록 조회 시:
+- GetBookingDetailUseCase가 Booking + ExternalBooking 테이블을 함께 조회
+- 내부 예약: bookingKey = "INT-{id}", 숙소/객실/요금제 이름 포함
+- 외부 예약: bookingKey = "EXT-{id}", externalBookingNo만 반환 (숙소 이름 등 없음)
 ```
 
 **동시성 전략 선택 근거:**
@@ -362,10 +392,11 @@ src/main/kotlin/com/ota/platform/
 │   └── infrastructure/ # JPA Repository
 │
 ├── booking/
-│   ├── api/          # Controller (Customer API)
-│   ├── application/  # UseCase
-│   ├── domain/       # Booking, BookingRoom
-│   ├── infrastructure/ # JPA Repository
+│   ├── api/          # Controller (Customer API, Admin API)
+│   ├── application/  # UseCase (CreateBookingUseCase, CreateExternalBookingUseCase,
+│   │                 #          GetBookingDetailUseCase, CancelBookingUseCase 등)
+│   ├── domain/       # Booking, BookingRoom, ExternalBooking
+│   ├── infrastructure/ # JPA Repository (BookingRepository, ExternalBookingRepository)
 │   ├── event/        # BookingCreatedEvent, BookingCancelledEvent
 │   ├── port/         # RoomTypePort, RatePlanPort, InventoryPort (interface + DTO)
 │   └── adapter/      # RoomTypeAdapter, RatePlanAdapter, InventoryAdapter
@@ -546,6 +577,7 @@ RequestLoggingFilter
 단위 테스트 (Spring 컨텍스트 없음)
   RoomInventoryTest     — decrease/increase/stopSell/isAvailable 도메인 로직
   PropertyTest          — 숙소 상태 머신 (PENDING_APPROVAL → ACTIVE → INACTIVE)
+  BookingKeyTypeTest    — key() 생성, parse() 파싱, 라운드트립, 잘못된 형식 예외
 
 통합 테스트 (Testcontainers: MySQL 8.0 + Redis 7)
   BookingIntegrationTest           — 예약 생성/취소/재고 차감·복원
@@ -553,6 +585,8 @@ RequestLoggingFilter
   BookingEdgeCaseIntegrationTest   — stopSell 예약 차단, DailyRate 요금 반영, ratePlan 소속 검증
   ExtranetApiIntegrationTest       — 객실 등록·재고 초기화·요금 오버라이드·stopSell 일괄 설정
   AccommodationSearchIntegrationTest — 내부+Supplier 통합 검색, 재고 필터, 최저가 정렬
+  ExternalBookingIntegrationTest   — 외부 공급사 예약 생성, source/bookingNo prefix 검증,
+                                     getById EXT- 키 조회, 내부+외부 통합 목록 정렬
 ```
 
 Testcontainers는 `AbstractIntegrationTest`에서 MySQL·Redis 컨테이너를 **한 번만 기동**하고 전체 테스트 클래스가 공유한다(`companion object` 내 `init` 블록). 덕분에 컨테이너 재시작 비용 없이 격리된 DB 환경을 유지한다.
@@ -566,6 +600,12 @@ JaCoCo 기준 (Controller, Config, DTO 제외):
 | Instruction 커버리지 | 47% |
 | Branch 커버리지 | 36% |
 
-커버리지 수치가 낮아 보이는 이유: 이 프로젝트는 **통합 테스트 위주**로 설계되어 있어 JaCoCo가 단위 테스트 기준으로 측정하는 Branch 커버리지는 낮게 집계된다. 핵심 비즈니스 로직(예약 생성/취소, 동시성 제어, 검색/요금 조회)은 실제 DB·캐시 환경에서 통합 테스트로 검증된다.
+커버리지 수치가 낮아 보이는 이유: 이 프로젝트는 **통합 테스트 위주**로 설계되어 있어 JaCoCo가 단위 테스트 기준으로 측정하는 Branch 커버리지는 낮게 집계된다. 핵심 비즈니스 로직(예약 생성/취소, 동시성 제어, 검색/요금 조회, 외부 공급사 예약)은 실제 DB·캐시 환경에서 통합 테스트로 검증된다.
+
+**외부 공급사 예약 추가 후 신규 커버리지 범위:**
+- `BookingKeyType` — key 생성·파싱 로직 단위 테스트로 100% Branch 커버
+- `CreateExternalBookingUseCase` — source 분기, bookingNo prefix 결정, 저장 로직
+- `GetBookingDetailUseCase.getById` — EXTERNAL 타입 분기
+- `GetBookingDetailUseCase.getByCustomer` / `getAll` — 내부+외부 병합 및 정렬
 
 리포트 확인: `./gradlew test jacocoTestReport` → `build/reports/jacoco/test/html/index.html`

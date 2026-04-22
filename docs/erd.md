@@ -161,10 +161,36 @@
 │ created_at                           │
 │ updated_at                           │
 └──────────────────────────────────────┘
+
+┌──────────────────────────────────────┐        ┌──────────────────────────────┐
+│           external_booking           │        │           customer            │
+├──────────────────────────────────────┤        ├──────────────────────────────┤
+│ id (PK)                              │        │ id (PK)                      │
+│ customer_id (FK → customer.id)      │◄───────│ email                        │
+│ accommodation_id  VARCHAR(255)       │ N    1 │ name                         │
+│ external_booking_no  VARCHAR(255)    │        │ phone                        │
+│ source  VARCHAR(50)                  │ ── SUPPLIER_A, SUPPLIER_B 등          │
+│ check_in  DATE                       │        └──────────────────────────────┘
+│ check_out  DATE                      │
+│ guest_count  INT                     │
+│ total_price  DECIMAL(12,2)           │
+│ guest_name  VARCHAR(255)             │
+│ guest_phone  VARCHAR(20)             │
+│ status  VARCHAR(20)  DEFAULT 'CONFIRMED'│
+│ created_at  DATETIME                 │
+│ updated_at  DATETIME                 │
+│                                      │
+│ INDEX idx_ext_booking_customer       │
+│   (customer_id)                      │
+└──────────────────────────────────────┘
 ```
 
 > Supplier의 실제 상품 정보는 외부 API에서 실시간으로 조회하므로 별도 테이블로 캐싱하지 않는다.
 > 필요 시 Redis에 단기 캐싱(TTL 5분)으로 대응한다.
+>
+> `external_booking`은 외부 공급사를 통해 예약된 건을 기록한다. 내부 `booking` 테이블과 FK 관계를 맺지 않으며,
+> `accommodation_id`는 `"SUPPLIER_A:ACC-001"` 형식의 문자열로 공급사·숙소를 식별한다.
+> 예약 키는 `"EXT-{id}"` 형식으로 생성된다 (`BookingKeyType.EXTERNAL`).
 
 ---
 
@@ -179,6 +205,7 @@
 | booking     | `(customer_id, status)` | 고객별 예약 조회 |
 | booking     | `(property_id, check_in, check_out)` | 숙소별 예약 현황 조회 |
 | booking_room | `(booking_id)` | 예약별 날짜 상세 조회 |
+| external_booking | `(customer_id)` | 고객별 외부 예약 조회 |
 
 ---
 
@@ -261,6 +288,7 @@ erDiagram
     room_type ||--o{ room_inventory : "날짜별 재고"
     rate_plan ||--o{ daily_rate : "날짜별 요금 오버라이드"
     customer ||--o{ booking : "예약"
+    customer ||--o{ external_booking : "외부 예약"
     booking ||--o{ booking_room : "날짜별 상세"
     room_inventory ||--o{ booking_room : "차감"
     property ||--o{ booking : "대상 숙소"
@@ -328,5 +356,16 @@ erDiagram
         bigint room_inventory_id FK
         date date
         decimal price_snapshot
+    }
+    external_booking {
+        bigint id PK
+        bigint customer_id FK
+        varchar accommodation_id
+        varchar external_booking_no
+        varchar source
+        date check_in
+        date check_out
+        decimal total_price
+        varchar status
     }
 ```
