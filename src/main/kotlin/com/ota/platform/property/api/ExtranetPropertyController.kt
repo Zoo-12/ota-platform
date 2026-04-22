@@ -5,12 +5,9 @@ import com.ota.platform.common.response.RegisterResponse
 import com.ota.platform.property.application.PropertyUseCase
 import com.ota.platform.property.application.RegisterPropertyCommand
 import com.ota.platform.property.application.UpdatePropertyCommand
-import com.ota.platform.property.domain.PropertyCategory
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.NotNull
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -20,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import java.time.LocalTime
 
 @Tag(name = "Extranet - 숙소")
 @RestController
@@ -55,12 +51,10 @@ class ExtranetPropertyController(
 
     @Operation(summary = "내 숙소 목록 조회")
     @GetMapping
-    fun list(@PathVariable partnerId: Long): ApiResponse<List<PropertySummaryResponse>> {
-        val properties = propertyUseCase.getByPartner(partnerId)
-        return ApiResponse.ok(properties.map {
+    fun list(@PathVariable partnerId: Long): ApiResponse<List<PropertySummaryResponse>> =
+        ApiResponse.ok(propertyUseCase.getByPartner(partnerId).map {
             PropertySummaryResponse(it.id, it.name, it.category.name, it.status.name, it.addressCity)
         })
-    }
 
     @Operation(summary = "숙소 수정")
     @PutMapping("/{propertyId}")
@@ -85,34 +79,3 @@ class ExtranetPropertyController(
         return ApiResponse.ok()
     }
 }
-
-data class RegisterPropertyRequest(
-    @field:NotBlank val name: String,
-    val description: String?,
-    @field:NotNull val category: PropertyCategory,
-    @field:NotBlank val addressCity: String,
-    val addressDistrict: String?,
-    val addressDetail: String?,
-    val latitude: Double?,
-    val longitude: Double?,
-    val checkInTime: LocalTime?,
-    val checkOutTime: LocalTime?,
-)
-
-data class UpdatePropertyRequest(
-    @field:NotBlank val name: String,
-    val description: String?,
-    @field:NotBlank val addressCity: String,
-    val addressDistrict: String?,
-    val addressDetail: String?,
-    val checkInTime: LocalTime?,
-    val checkOutTime: LocalTime?,
-)
-
-data class PropertySummaryResponse(
-    val id: Long,
-    val name: String,
-    val category: String,
-    val status: String,
-    val addressCity: String,
-)

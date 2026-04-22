@@ -3,6 +3,7 @@ package com.ota.platform.property.application
 import com.ota.platform.common.exception.BadRequestException
 import com.ota.platform.common.exception.NotFoundException
 import com.ota.platform.property.domain.Partner
+import com.ota.platform.property.domain.PartnerStatus
 import com.ota.platform.property.infrastructure.PartnerRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -33,6 +34,10 @@ class PartnerUseCase(
     fun getById(partnerId: Long): Partner =
         partnerRepository.findById(partnerId)
             .orElseThrow { NotFoundException("Partner", partnerId) }
+
+    @Transactional(readOnly = true)
+    fun list(status: PartnerStatus?): List<Partner> =
+        if (status != null) partnerRepository.findAllByStatus(status) else partnerRepository.findAll()
 
     @Transactional
     fun approve(partnerId: Long) {

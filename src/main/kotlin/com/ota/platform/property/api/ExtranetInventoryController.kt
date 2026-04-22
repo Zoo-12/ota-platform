@@ -6,7 +6,6 @@ import com.ota.platform.property.application.InventoryUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.NotNull
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
@@ -48,26 +47,8 @@ class ExtranetInventoryController(
         @PathVariable roomTypeId: Long,
         @RequestParam from: LocalDate,
         @RequestParam to: LocalDate,
-    ): ApiResponse<List<InventoryResponse>> {
-        val inventories = inventoryUseCase.getInventories(roomTypeId, from, to)
-        return ApiResponse.ok(inventories.map {
+    ): ApiResponse<List<InventoryResponse>> =
+        ApiResponse.ok(inventoryUseCase.getInventories(roomTypeId, from, to).map {
             InventoryResponse(it.date.toString(), it.totalCount, it.availableCount, it.stopSell)
         })
-    }
 }
-
-data class BulkUpdateInventoryRequest(
-    @field:NotNull val from: LocalDate,
-    @field:NotNull val to: LocalDate,
-    val totalCount: Int?,
-    val stopSell: Boolean?,
-    val minStay: Int?,
-    val maxStay: Int?,
-)
-
-data class InventoryResponse(
-    val date: String,
-    val totalCount: Int,
-    val availableCount: Int,
-    val stopSell: Boolean,
-)

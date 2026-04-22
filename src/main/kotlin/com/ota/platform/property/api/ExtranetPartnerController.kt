@@ -4,11 +4,9 @@ import com.ota.platform.common.response.ApiResponse
 import com.ota.platform.common.response.RegisterResponse
 import com.ota.platform.property.application.PartnerUseCase
 import com.ota.platform.property.application.RegisterPartnerCommand
-import com.ota.platform.property.infrastructure.PartnerRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.NotBlank
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -23,16 +21,13 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/extranet/partners")
 class ExtranetPartnerController(
     private val partnerUseCase: PartnerUseCase,
-    private val partnerRepository: PartnerRepository,
 ) {
     @Operation(summary = "파트너 목록 조회")
     @GetMapping
-    fun list(): ApiResponse<List<PartnerResponse>> {
-        val partners = partnerRepository.findAll().map {
+    fun list(): ApiResponse<List<PartnerResponse>> =
+        ApiResponse.ok(partnerUseCase.list(null).map {
             PartnerResponse(it.id, it.name, it.email, it.phone, it.businessNumber, it.status.name)
-        }
-        return ApiResponse.ok(partners)
-    }
+        })
 
     @Operation(summary = "파트너 등록")
     @PostMapping
@@ -54,30 +49,7 @@ class ExtranetPartnerController(
     fun get(@PathVariable partnerId: Long): ApiResponse<PartnerResponse> {
         val partner = partnerUseCase.getById(partnerId)
         return ApiResponse.ok(
-            PartnerResponse(
-                id = partner.id,
-                name = partner.name,
-                email = partner.email,
-                phone = partner.phone,
-                businessNumber = partner.businessNumber,
-                status = partner.status.name,
-            ),
+            PartnerResponse(partner.id, partner.name, partner.email, partner.phone, partner.businessNumber, partner.status.name)
         )
     }
 }
-
-data class RegisterPartnerRequest(
-    @field:NotBlank val name: String,
-    @field:NotBlank val email: String,
-    @field:NotBlank val phone: String,
-    @field:NotBlank val businessNumber: String,
-)
-
-data class PartnerResponse(
-    val id: Long,
-    val name: String,
-    val email: String,
-    val phone: String,
-    val businessNumber: String,
-    val status: String,
-)

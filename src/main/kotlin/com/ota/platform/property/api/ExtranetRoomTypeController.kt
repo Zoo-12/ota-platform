@@ -5,13 +5,9 @@ import com.ota.platform.common.response.RegisterResponse
 import com.ota.platform.property.application.RegisterRoomTypeCommand
 import com.ota.platform.property.application.RoomTypeUseCase
 import com.ota.platform.property.application.UpdateRoomTypeCommand
-import com.ota.platform.property.domain.BedType
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.Min
-import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.NotNull
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -21,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import java.time.LocalDate
 
 @Tag(name = "Extranet - 객실 타입")
 @RestController
@@ -55,12 +50,10 @@ class ExtranetRoomTypeController(
 
     @Operation(summary = "객실 타입 목록 조회")
     @GetMapping
-    fun list(@PathVariable propertyId: Long): ApiResponse<List<RoomTypeSummaryResponse>> {
-        val roomTypes = roomTypeUseCase.getByProperty(propertyId)
-        return ApiResponse.ok(roomTypes.map {
+    fun list(@PathVariable propertyId: Long): ApiResponse<List<RoomTypeSummaryResponse>> =
+        ApiResponse.ok(roomTypeUseCase.getByProperty(propertyId).map {
             RoomTypeSummaryResponse(it.id, it.name, it.maxOccupancy, it.bedType.name)
         })
-    }
 
     @Operation(summary = "객실 타입 수정")
     @PutMapping("/{roomTypeId}")
@@ -80,31 +73,3 @@ class ExtranetRoomTypeController(
         return ApiResponse.ok()
     }
 }
-
-data class RegisterRoomTypeRequest(
-    @field:NotBlank val name: String,
-    val description: String?,
-    @field:Min(1) val maxOccupancy: Int,
-    @field:NotNull val bedType: BedType,
-    val sizeSqm: Double?,
-    val amenities: String?,
-    val totalCount: Int?,
-    val initInventoryFrom: LocalDate?,
-    val initInventoryTo: LocalDate?,
-)
-
-data class UpdateRoomTypeRequest(
-    @field:NotBlank val name: String,
-    val description: String?,
-    @field:Min(1) val maxOccupancy: Int,
-    @field:NotNull val bedType: BedType,
-    val sizeSqm: Double?,
-    val amenities: String?,
-)
-
-data class RoomTypeSummaryResponse(
-    val id: Long,
-    val name: String,
-    val maxOccupancy: Int,
-    val bedType: String,
-)
