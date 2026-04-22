@@ -3,11 +3,14 @@ package com.ota.platform.property
 import com.ota.platform.AbstractIntegrationTest
 import com.ota.platform.TestFixtures
 import com.ota.platform.inventory.infrastructure.RoomInventoryRepository
+import com.ota.platform.common.exception.BadRequestException
 import com.ota.platform.property.application.*
 import com.ota.platform.property.domain.BedType
 import com.ota.platform.property.domain.CancelPolicy
+import com.ota.platform.property.domain.PropertyCategory
 import com.ota.platform.property.domain.PropertyStatus
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,6 +22,7 @@ import java.time.LocalDate
 class ExtranetApiIntegrationTest : AbstractIntegrationTest() {
 
     @Autowired lateinit var fixtures: TestFixtures
+    @Autowired lateinit var propertyUseCase: PropertyUseCase
     @Autowired lateinit var roomTypeUseCase: RoomTypeUseCase
     @Autowired lateinit var ratePlanUseCase: RatePlanUseCase
     @Autowired lateinit var inventoryUseCase: InventoryUseCase
@@ -127,5 +131,30 @@ class ExtranetApiIntegrationTest : AbstractIntegrationTest() {
 
         val inventories = inventoryUseCase.getInventories(roomType.id, from, to)
         assertThat(inventories).allMatch { it.stopSell }
+    }
+
+    @Test
+    @DisplayName("미승인 파트너가 숙소를 등록하면 BadRequestException이 발생한다")
+    fun `미승인 파트너 숙소 등록 시 BadRequestException`() {
+        val partner = fixtures.createPartner() // PENDING 상태
+
+        assertThatThrownBy {
+            propertyUseCase.register(
+                RegisterPropertyCommand(
+                    partnerId = partner.id,
+                    name = "테스트 호텔",
+                    description = null,
+                    category = PropertyCategory.HOTEL,
+                    addressCity = "서울",
+                    addressDistrict = null,
+                    addressDetail = null,
+                    latitude = null,
+                    longitude = null,
+                    checkInTime = null,
+                    checkOutTime = null,
+                ),
+            )
+        }.isInstanceOf(BadRequestException::class.java)
+            .hasMessageContaining("승인된 파트너만")
     }
 }

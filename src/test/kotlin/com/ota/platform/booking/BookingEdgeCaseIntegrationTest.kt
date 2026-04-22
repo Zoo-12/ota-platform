@@ -9,6 +9,7 @@ import com.ota.platform.common.exception.BadRequestException
 import com.ota.platform.common.exception.ConflictException
 import com.ota.platform.property.application.BulkUpdateInventoryCommand
 import com.ota.platform.property.application.InventoryUseCase
+import com.ota.platform.property.application.PropertyUseCase
 import com.ota.platform.property.application.RatePlanUseCase
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -33,6 +34,7 @@ class BookingEdgeCaseIntegrationTest : AbstractIntegrationTest() {
     @Autowired lateinit var createBookingUseCase: CreateBookingUseCase
     @Autowired lateinit var inventoryUseCase: InventoryUseCase
     @Autowired lateinit var ratePlanUseCase: RatePlanUseCase
+    @Autowired lateinit var propertyUseCase: PropertyUseCase
     @Autowired lateinit var bookingRepository: BookingRepository
 
     private val checkIn: LocalDate = LocalDate.now().plusDays(50)
@@ -238,5 +240,64 @@ class BookingEdgeCaseIntegrationTest : AbstractIntegrationTest() {
             )
         }.isInstanceOf(BadRequestException::class.java)
             .hasMessageContaining("객실 타입")
+    }
+
+    @Test
+    @DisplayName("승인되지 않은 숙소(PENDING_APPROVAL)에 대한 예약은 BadRequestException이 발생한다")
+    fun `미승인 숙소 예약 시 BadRequestException`() {
+        val partner = fixtures.createPartner()
+        val property = fixtures.createPendingProperty(partner.id)
+        val roomType = fixtures.createRoomType(property.id)
+        val ratePlan = fixtures.createRatePlan(roomType.id)
+        val customer = fixtures.createCustomer()
+        fixtures.createInventoryRange(roomType.id, checkIn, checkOut.minusDays(1), totalCount = 2)
+
+        assertThatThrownBy {
+            createBookingUseCase.create(
+                CreateBookingCommand(
+                    customerId = customer.id,
+                    roomTypeId = roomType.id,
+                    ratePlanId = ratePlan.id,
+                    checkIn = checkIn,
+                    checkOut = checkOut,
+                    guestCount = 1,
+                    guestName = "홍길동",
+                    guestPhone = null,
+                    specialRequest = null,
+                ),
+            )
+        }.isInstanceOf(BadRequestException::class.java)
+            .hasMessageContaining("예약 가능한 숙소가 아닙니다")
+    }
+
+    @Test
+    @DisplayName("비활성화된 숙소(INACTIVE)에 대한 예약은 BadRequestException이 발생한다")
+    fun `비활성 숙소 예약 시 BadRequestException`() {
+        val partner = fixtures.createPartner()
+        val property = fixtures.createActiveProperty(partner.id)
+        val roomType = fixtures.createRoomType(property.id)
+        val ratePlan = fixtures.createRatePlan(roomType.id)
+        val customer = fixtures.createCustomer()
+        fixtures.createInventoryRange(roomType.id, checkIn, checkOut.minusDays(1), totalCount = 2)
+
+        // 숙소 비활성화
+        propertyUseCase.deactivate(property.id)
+
+        assertThatThrownBy {
+            createBookingUseCase.create(
+                CreateBookingCommand(
+                    customerId = customer.id,
+                    roomTypeId = roomType.id,
+                    ratePlanId = ratePlan.id,
+                    checkIn = checkIn,
+                    checkOut = checkOut,
+                    guestCount = 1,
+                    guestName = "홍길동",
+                    guestPhone = null,
+                    specialRequest = null,
+                ),
+            )
+        }.isInstanceOf(BadRequestException::class.java)
+            .hasMessageContaining("예약 가능한 숙소가 아닙니다")
     }
 }
