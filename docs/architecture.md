@@ -611,7 +611,8 @@ RequestLoggingFilter
   ExtranetApiIntegrationTest       — 객실 등록·재고 초기화·요금 오버라이드·stopSell 일괄 설정
   AccommodationSearchIntegrationTest — 내부+Supplier 통합 검색, 재고 필터, 최저가 정렬
   ExternalBookingIntegrationTest   — 외부 공급사 예약 생성, source/bookingNo prefix 검증,
-                                     getById EXT- 키 조회, 내부+외부 통합 목록 정렬
+                                     getById EXT- 키 조회, 내부+외부 통합 목록 정렬,
+                                     취소 성공(CANCELLED 전이), 중복 취소 예외, 권한 없는 취소 예외
 ```
 
 Testcontainers는 `AbstractIntegrationTest`에서 MySQL·Redis 컨테이너를 **한 번만 기동**하고 전체 테스트 클래스가 공유한다(`companion object` 내 `init` 블록). 덕분에 컨테이너 재시작 비용 없이 격리된 DB 환경을 유지한다.

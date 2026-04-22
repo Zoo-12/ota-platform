@@ -376,3 +376,37 @@
 **[프론트 수정 UX 통일]**
 - 선택: 별도 "수정" 버튼 대신 항목 클릭 시 수정 폼으로 이동
 - 이유: 수정 버튼과 선택 버튼이 혼재되면 UX가 복잡해짐. 클릭 → 수정의 단순한 패턴으로 통일
+
+---
+
+## Day 5 (3) - 외부 공급사 예약 지원 / 상태 관리 개선 / 취소 기능 / 문서 완성
+
+### 수행 내용
+- `external_booking` 테이블 신규 추가 (Flyway V3) — 공급사 예약 번호(externalBookingNo), source, status 저장
+- `ExternalBooking` 엔티티, `ExternalBookingRepository`, `CreateExternalBookingUseCase` 구현
+- `BookingKeyType` 열거형으로 `"INT-"` / `"EXT-"` prefix 상수화 — key 생성 및 파싱 로직 캡슐화
+- `GetBookingDetailUseCase`에 내부+외부 예약 통합 조회 (createdAt 내림차순 정렬)
+- 프론트엔드 API 응답 불일치 전면 수정 (bookingKey, source, createdAt, 내부/외부 분기 표시)
+- ERD 문서에 `external_booking` 테이블 및 Mermaid 다이어그램 업데이트
+- `ExternalBookingStatus` 열거형 도입 (String → enum, `@Enumerated(EnumType.STRING)`)
+- Flyway V4: status 컬럼 CHECK 제약(`CONFIRMED | CANCELLED`) 추가
+- `CancelExternalBookingUseCase` 구현 — 단순 status 전이(CONFIRMED → CANCELLED)
+- `CustomerBookingController.cancel()` 수정 — BookingKeyType 분기로 내부/외부 취소 라우팅
+- 아키텍처 문서에 SAGA 패턴 적용 계획 (Phase 1~3, FeignClient 방향) 문서화
+- 테스트 추가: `BookingKeyTypeTest`(단위 6건), `ExternalBookingIntegrationTest`(통합 7건)
+- 프론트엔드 외부 예약 취소 버튼 활성화 (내부 예약만 취소 사유 프롬프트 표시)
+- 프론트엔드 빌드 후 Spring Boot static 폴더에 배포
+
+### 의사결정
+
+**[external_booking 취소 시 재고 복원 없음]**
+- 선택: 외부 예약 취소는 status만 CANCELLED로 변경, 재고 복원 로직 없음
+- 이유: 외부 공급사 숙소의 재고는 자사 `room_inventory` 테이블에서 관리하지 않는다. 취소 시 실제 공급사 API 호출(향후 SAGA Phase 3b)이 필요하지만, 현재 단계에서는 로컬 상태 업데이트만 수행한다.
+
+**[ExternalBookingStatus: String → enum 타입 변경]**
+- 선택: `ExternalBookingStatus` 열거형 도입, DB 컬럼은 VARCHAR 유지 (`EnumType.STRING`)
+- 이유: String으로 상태를 관리하면 오타 및 잘못된 값 저장 위험이 있다. 열거형으로 타입 안전성을 확보하면서 DB 컬럼 타입은 VARCHAR 그대로 두어 마이그레이션 비용을 최소화했다. 추가로 CHECK 제약(V4)으로 DB 레벨에서도 허용 값을 제한했다.
+
+**[SAGA 패턴 실제 구현 vs 문서화만]**
+- 선택: 주석과 아키텍처 문서에 SAGA 패턴 의도만 기록, 코드는 현행 유지
+- 이유: 현재 단계에서 실제 외부 API 연동이 없으므로 SAGA 인프라(SagaHelper, REQUIRES_NEW 트랜잭션 등)를 추가하는 것은 오버엔지니어링이다. 연동 시점에 패턴을 적용할 수 있도록 설계 의도를 코드 주석과 문서에 명확히 남겼다.
