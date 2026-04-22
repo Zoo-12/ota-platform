@@ -67,7 +67,7 @@ class RedisConfig {
                 BasicPolymorphicTypeValidator.builder()
                     .allowIfSubType(Any::class.java)
                     .build(),
-                ObjectMapper.DefaultTyping.NON_FINAL,
+                ObjectMapper.DefaultTyping.EVERYTHING,
                 "@class",
             )
 }
