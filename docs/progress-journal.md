@@ -345,3 +345,34 @@
 - MSA 서비스 경계를 2개(booking / property+inventory+supplier)로 직접 설계
 - JaCoCo 커버리지 수치(Instruction 54%, Branch 37%)가 낮은 이유를 직접 분석 — 통합 테스트 위주 설계 특성으로 판단하고 수치보다 실질적 검증 신뢰도가 높음을 문서에 명시
 - API 레이어 리팩터링 범위 직접 결정 — 컨트롤러 DTO 전용 파일 분리, UseCase 추가(`GetBookingDetailUseCase`, `GetPropertyDetailUseCase`), 레포지토리 직접 참조 제거
+
+---
+
+## Day 5 (2) - Extranet UX 개선 / 예약 검증 / 프론트엔드 개선 / 테스트 보강
+
+### 수행 내용
+- Extranet 파트너 → 숙소 → 객실 → 요금제 순 드릴다운 네비게이션 구현
+- 숙소/객실/요금제 CRUD (등록 + 수정) 프론트 구현
+- 숙소 승인 상태(PENDING_APPROVAL/ACTIVE/INACTIVE) 시각적 표시 및 Admin 승인 안내
+- Admin 숙소/예약 상세 모달 구현 (ID → 실제 이름 표시)
+- `CreateBookingUseCase`에 숙소 상태 검증 추가 (ACTIVE만 예약 가능)
+- `PropertyUseCase.register()`에 파트너 상태 검증 추가 (ACTIVE만 숙소 등록 가능)
+- `RoomTypeUseCase`에 `@CacheEvict` 추가 (accommodation-detail, accommodation-search)
+- Redis 캐시 직렬화 모드를 `NON_FINAL` → `EVERYTHING`으로 변경
+- 테스트 3건 추가: 미승인 숙소 예약 차단, 비활성 숙소 예약 차단, 미승인 파트너 숙소 등록 차단
+- 고객 예약 완료 시 예약 목록으로 자동 이동 + 최신순 정렬
+- traceId 운영 환경 주의사항 문서화
+
+### 의사결정
+
+**[traceId 응답 노출 범위]**
+- 선택: 개발/테스트 환경에서만 응답 헤더와 에러 body에 traceId 노출. 운영 환경에서는 서버 내부 로깅 용도로만 사용 권장
+- 이유: traceId 직접 노출은 내부 시스템 정보 유출 위험. 
+
+**[숙소 예약 사전 검증]**
+- 선택: `CreateBookingUseCase`에서 `property.isActive()` 검증 추가
+- 이유: PENDING_APPROVAL/INACTIVE 상태의 숙소에 예약이 들어오면 데이터 정합성 문제 발생. 예약 생성 시점에서 차단하는 것이 가장 안전
+
+**[프론트 수정 UX 통일]**
+- 선택: 별도 "수정" 버튼 대신 항목 클릭 시 수정 폼으로 이동
+- 이유: 수정 버튼과 선택 버튼이 혼재되면 UX가 복잡해짐. 클릭 → 수정의 단순한 패턴으로 통일
