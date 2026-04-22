@@ -30,7 +30,7 @@ class AdminBookingController(
     }
 
     @Operation(summary = "예약 상세 조회")
-    @GetMapping("/{bookingId}")
-    fun get(@PathVariable bookingId: Long): ApiResponse<BookingDetailResponse> =
-        ApiResponse.ok(getBookingDetailUseCase.getById(bookingId).toDetailResponse())
+    @GetMapping("/{bookingKey}")
+    fun get(@PathVariable bookingKey: String): ApiResponse<BookingDetailResponse> =
+        ApiResponse.ok(getBookingDetailUseCase.getById(bookingKey).toDetailResponse())
 }

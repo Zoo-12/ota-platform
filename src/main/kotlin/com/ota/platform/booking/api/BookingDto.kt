@@ -9,14 +9,16 @@ import java.time.LocalDate
 
 data class CreateBookingRequest(
     @field:NotNull val customerId: Long,
-    @field:NotNull val roomTypeId: Long,
-    @field:NotNull val ratePlanId: Long,
+    val accommodationId: String?,
+    @field:NotBlank val roomTypeId: String,
+    @field:NotBlank val ratePlanId: String,
     @field:NotNull val checkIn: LocalDate,
     @field:NotNull val checkOut: LocalDate,
     @field:Min(1) val guestCount: Int,
     @field:NotBlank val guestName: String,
     val guestPhone: String?,
     val specialRequest: String?,
+    val totalPrice: BigDecimal?,
 )
 
 data class CancelBookingRequest(
@@ -24,52 +26,64 @@ data class CancelBookingRequest(
     val reason: String?,
 )
 
+data class CreateBookingResponse(
+    val bookingKey: String,
+)
+
 data class BookingResponse(
-    val id: Long,
-    val propertyId: Long,
-    val propertyName: String,
-    val roomTypeId: Long,
-    val roomTypeName: String,
-    val ratePlanId: Long,
-    val ratePlanName: String,
+    val bookingKey: String,
+    val source: String,
+    val propertyId: String?,
+    val propertyName: String?,
+    val roomTypeId: String?,
+    val roomTypeName: String?,
+    val ratePlanId: String?,
+    val ratePlanName: String?,
+    val externalBookingNo: String?,
     val checkIn: String,
     val checkOut: String,
     val guestCount: Int,
-    val totalPrice: BigDecimal,
+    val totalPrice: BigDecimal?,
     val guestName: String,
     val status: String,
     val cancelledAt: String?,
     val cancelReason: String?,
+    val createdAt: String,
 )
 
 data class BookingDetailResponse(
-    val id: Long,
-    val propertyId: Long,
-    val propertyName: String,
-    val roomTypeId: Long,
-    val roomTypeName: String,
-    val ratePlanId: Long,
-    val ratePlanName: String,
+    val bookingKey: String,
+    val source: String,
+    val propertyId: String?,
+    val propertyName: String?,
+    val roomTypeId: String?,
+    val roomTypeName: String?,
+    val ratePlanId: String?,
+    val ratePlanName: String?,
+    val externalBookingNo: String?,
     val checkIn: String,
     val checkOut: String,
     val guestCount: Int,
-    val totalPrice: BigDecimal,
+    val totalPrice: BigDecimal?,
     val guestName: String,
     val guestPhone: String?,
     val specialRequest: String?,
     val status: String,
     val cancelledAt: String?,
     val cancelReason: String?,
+    val createdAt: String,
 )
 
 fun BookingDetailResult.toResponse() = BookingResponse(
-    id = id,
+    bookingKey = bookingKey,
+    source = source,
     propertyId = propertyId,
     propertyName = propertyName,
     roomTypeId = roomTypeId,
     roomTypeName = roomTypeName,
     ratePlanId = ratePlanId,
     ratePlanName = ratePlanName,
+    externalBookingNo = externalBookingNo,
     checkIn = checkIn.toString(),
     checkOut = checkOut.toString(),
     guestCount = guestCount,
@@ -78,16 +92,19 @@ fun BookingDetailResult.toResponse() = BookingResponse(
     status = status,
     cancelledAt = cancelledAt?.toString(),
     cancelReason = cancelReason,
+    createdAt = createdAt.toString(),
 )
 
 fun BookingDetailResult.toDetailResponse() = BookingDetailResponse(
-    id = id,
+    bookingKey = bookingKey,
+    source = source,
     propertyId = propertyId,
     propertyName = propertyName,
     roomTypeId = roomTypeId,
     roomTypeName = roomTypeName,
     ratePlanId = ratePlanId,
     ratePlanName = ratePlanName,
+    externalBookingNo = externalBookingNo,
     checkIn = checkIn.toString(),
     checkOut = checkOut.toString(),
     guestCount = guestCount,
@@ -98,4 +115,5 @@ fun BookingDetailResult.toDetailResponse() = BookingDetailResponse(
     status = status,
     cancelledAt = cancelledAt?.toString(),
     cancelReason = cancelReason,
+    createdAt = createdAt.toString(),
 )

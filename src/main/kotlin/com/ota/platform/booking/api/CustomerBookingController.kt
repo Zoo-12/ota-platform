@@ -4,9 +4,12 @@ import com.ota.platform.booking.application.CancelBookingCommand
 import com.ota.platform.booking.application.CancelBookingUseCase
 import com.ota.platform.booking.application.CreateBookingCommand
 import com.ota.platform.booking.application.CreateBookingUseCase
+import com.ota.platform.booking.application.CreateExternalBookingCommand
+import com.ota.platform.booking.application.CreateExternalBookingUseCase
 import com.ota.platform.booking.application.GetBookingDetailUseCase
+import com.ota.platform.booking.domain.BookingKeyType
 import com.ota.platform.common.response.ApiResponse
-import com.ota.platform.common.response.RegisterResponse
+import com.ota.platform.supplier.adapter.SupplierPrefixes
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
@@ -26,18 +29,37 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/customer/bookings")
 class CustomerBookingController(
     private val createBookingUseCase: CreateBookingUseCase,
+    private val createExternalBookingUseCase: CreateExternalBookingUseCase,
     private val cancelBookingUseCase: CancelBookingUseCase,
     private val getBookingDetailUseCase: GetBookingDetailUseCase,
 ) {
     @Operation(summary = "예약 생성")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    fun create(@Valid @RequestBody request: CreateBookingRequest): ApiResponse<RegisterResponse> {
+    fun create(@Valid @RequestBody request: CreateBookingRequest): ApiResponse<CreateBookingResponse> {
+        val accommodationId = request.accommodationId
+
+        if (accommodationId != null && !accommodationId.startsWith(SupplierPrefixes.INTERNAL)) {
+            val bookingKey = createExternalBookingUseCase.create(
+                CreateExternalBookingCommand(
+                    customerId = request.customerId,
+                    accommodationId = accommodationId,
+                    checkIn = request.checkIn,
+                    checkOut = request.checkOut,
+                    guestCount = request.guestCount,
+                    totalPrice = request.totalPrice,
+                    guestName = request.guestName,
+                    guestPhone = request.guestPhone,
+                ),
+            )
+            return ApiResponse.ok(CreateBookingResponse(bookingKey = bookingKey))
+        }
+
         val id = createBookingUseCase.create(
             CreateBookingCommand(
                 customerId = request.customerId,
-                roomTypeId = request.roomTypeId,
-                ratePlanId = request.ratePlanId,
+                roomTypeId = request.roomTypeId.toLong(),
+                ratePlanId = request.ratePlanId.toLong(),
                 checkIn = request.checkIn,
                 checkOut = request.checkOut,
                 guestCount = request.guestCount,
@@ -46,7 +68,7 @@ class CustomerBookingController(
                 specialRequest = request.specialRequest,
             ),
         )
-        return ApiResponse.ok(RegisterResponse(id))
+        return ApiResponse.ok(CreateBookingResponse(bookingKey = BookingKeyType.INTERNAL.key(id)))
     }
 
     @Operation(summary = "내 예약 목록 조회")
@@ -55,16 +77,17 @@ class CustomerBookingController(
         ApiResponse.ok(getBookingDetailUseCase.getByCustomer(customerId).map { it.toResponse() })
 
     @Operation(summary = "예약 상세 조회")
-    @GetMapping("/{bookingId}")
-    fun get(@PathVariable bookingId: Long): ApiResponse<BookingDetailResponse> =
-        ApiResponse.ok(getBookingDetailUseCase.getById(bookingId).toDetailResponse())
+    @GetMapping("/{bookingKey}")
+    fun get(@PathVariable bookingKey: String): ApiResponse<BookingDetailResponse> =
+        ApiResponse.ok(getBookingDetailUseCase.getById(bookingKey).toDetailResponse())
 
     @Operation(summary = "예약 취소")
-    @DeleteMapping("/{bookingId}")
+    @DeleteMapping("/{bookingKey}")
     fun cancel(
-        @PathVariable bookingId: Long,
+        @PathVariable bookingKey: String,
         @Valid @RequestBody request: CancelBookingRequest,
     ): ApiResponse<Unit> {
+        val (_, bookingId) = BookingKeyType.parse(bookingKey)
         cancelBookingUseCase.cancel(
             CancelBookingCommand(
                 customerId = request.customerId,
