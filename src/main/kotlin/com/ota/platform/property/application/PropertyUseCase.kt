@@ -22,8 +22,10 @@ class PropertyUseCase(
 
     @Transactional
     fun register(command: RegisterPropertyCommand): Long {
-        if (!partnerRepository.existsById(command.partnerId)) {
-            throw NotFoundException("Partner", command.partnerId)
+        val partner = partnerRepository.findById(command.partnerId)
+            .orElseThrow { NotFoundException("Partner", command.partnerId) }
+        if (!partner.isActive()) {
+            throw BadRequestException("승인된 파트너만 숙소를 등록할 수 있습니다.")
         }
         val property = Property(
             partnerId = command.partnerId,

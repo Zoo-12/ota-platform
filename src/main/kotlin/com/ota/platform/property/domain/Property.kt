@@ -80,6 +80,8 @@ class Property(
     var checkOutTime: LocalTime? = checkOutTime
         protected set
 
+    fun isActive(): Boolean = status == PropertyStatus.ACTIVE
+
     fun approve() {
         status = PropertyStatus.ACTIVE
     }

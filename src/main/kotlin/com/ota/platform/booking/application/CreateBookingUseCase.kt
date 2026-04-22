@@ -10,6 +10,7 @@ import com.ota.platform.booking.port.RatePlanPort
 import com.ota.platform.booking.port.RoomTypePort
 import com.ota.platform.common.exception.BadRequestException
 import com.ota.platform.common.exception.NotFoundException
+import com.ota.platform.property.application.PropertyUseCase
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,6 +23,7 @@ class CreateBookingUseCase(
     private val roomTypePort: RoomTypePort,
     private val ratePlanPort: RatePlanPort,
     private val inventoryPort: InventoryPort,
+    private val propertyUseCase: PropertyUseCase,
     private val eventPublisher: ApplicationEventPublisher,
 ) {
 
@@ -40,6 +42,11 @@ class CreateBookingUseCase(
             .orElseThrow { NotFoundException("Customer", command.customerId) }
 
         val roomType = roomTypePort.getById(command.roomTypeId)
+        val property = propertyUseCase.getById(roomType.propertyId)
+        if (!property.isActive()) {
+            throw BadRequestException("예약 가능한 숙소가 아닙니다.")
+        }
+
         val ratePlan = ratePlanPort.getById(command.ratePlanId)
 
         if (ratePlan.roomTypeId != roomType.id) {

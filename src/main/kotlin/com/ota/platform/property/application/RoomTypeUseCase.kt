@@ -1,11 +1,14 @@
 package com.ota.platform.property.application
 
+import com.ota.platform.common.config.CacheNames
 import com.ota.platform.common.exception.NotFoundException
 import com.ota.platform.property.domain.BedType
 import com.ota.platform.property.domain.RoomType
 import com.ota.platform.property.infrastructure.PropertyRepository
 import com.ota.platform.property.infrastructure.RoomTypeRepository
 import com.ota.platform.property.port.InventoryPort
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Caching
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -17,6 +20,10 @@ class RoomTypeUseCase(
     private val inventoryPort: InventoryPort,
 ) {
 
+    @Caching(evict = [
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_DETAIL], allEntries = true),
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_SEARCH], allEntries = true),
+    ])
     @Transactional
     fun register(command: RegisterRoomTypeCommand): Long {
         if (!propertyRepository.existsById(command.propertyId)) {
@@ -45,6 +52,9 @@ class RoomTypeUseCase(
         return saved.id
     }
 
+    @Caching(evict = [
+        CacheEvict(cacheNames = [CacheNames.ACCOMMODATION_DETAIL], allEntries = true),
+    ])
     @Transactional
     fun update(roomTypeId: Long, command: UpdateRoomTypeCommand) {
         val roomType = findById(roomTypeId)
