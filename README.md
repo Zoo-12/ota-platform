@@ -65,7 +65,7 @@ API를 직접 호출하지 않아도 **Next.js 14로 구현된 프론트엔드**
 - **동시성 제어**: 비관적 락(`SELECT FOR UPDATE`)으로 동시 예약 시 재고 초과 방지
 - **Supplier 통합**: 어댑터 패턴으로 외부 공급사 상품을 자사 검색에 통합
 
-### 가산점 구현
+### 선택 구현
 - Admin 숙소 승인/비활성화/재활성화, 예약 모니터링
 - 에러 처리 및 로깅 전략 (traceId MDC, 계층화된 예외 처리, 프로필별 구조화 로깅)
 - 이벤트 기반 아키텍처 (`BookingCreatedEvent`, `BookingCancelledEvent`, AFTER_COMMIT)
