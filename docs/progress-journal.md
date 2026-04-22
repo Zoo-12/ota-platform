@@ -343,3 +343,5 @@
 - AI 제안 `@Async` 그대로 수용 → Virtual Thread 활성화로 JDK 21 기능 활용 (직접 질문하여 결정)
 - 포트/어댑터 분리 범위에서 `InternalAccommodationAdapter` 제외 결정 (추가 추상화가 오버엔지니어링이라 판단)
 - MSA 서비스 경계를 2개(booking / property+inventory+supplier)로 직접 설계
+- JaCoCo 커버리지 수치(Instruction 54%, Branch 37%)가 낮은 이유를 직접 분석 — 통합 테스트 위주 설계 특성으로 판단하고 수치보다 실질적 검증 신뢰도가 높음을 문서에 명시
+- API 레이어 리팩터링 범위 직접 결정 — 컨트롤러 DTO 전용 파일 분리, UseCase 추가(`GetBookingDetailUseCase`, `GetPropertyDetailUseCase`), 레포지토리 직접 참조 제거
