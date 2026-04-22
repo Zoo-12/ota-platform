@@ -11,6 +11,9 @@ interface RatePlanPort {
 data class RatePlanInfo(
     val id: Long,
     val roomTypeId: Long,
+    val name: String,
+    val cancelPolicy: String,
+    val breakfastIncluded: Boolean,
     val basePrice: BigDecimal,
 )
 

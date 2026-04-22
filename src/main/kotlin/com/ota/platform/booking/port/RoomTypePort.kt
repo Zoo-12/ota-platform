@@ -7,4 +7,7 @@ interface RoomTypePort {
 data class RoomTypeInfo(
     val id: Long,
     val propertyId: Long,
+    val name: String,
+    val bedType: String,
+    val maxOccupancy: Int,
 )

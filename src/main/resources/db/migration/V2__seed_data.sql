@@ -39,24 +39,24 @@ VALUES (5, 3, '오션뷰 킹', '제주 바다가 보이는 킹룸', 2, 'KING', 4
 -- ── 요금제 ─────────────────────────────────────────────────────
 -- 그랜드 서울 (room_type 1,2)
 INSERT INTO rate_plans (id, room_type_id, name, cancel_policy, breakfast_included, base_price, is_active)
-VALUES (1, 1, '기본 요금',    'FREE_CANCEL',    0, 150000.00, 1),
-       (2, 1, '조식 포함',    'FREE_CANCEL',    1, 180000.00, 1),
-       (3, 2, '스위트 기본',  'PARTIAL_REFUND', 0, 350000.00, 1),
-       (4, 2, '스위트 조식',  'FREE_CANCEL',    1, 390000.00, 1);
+VALUES (1, 1, '무료취소',    'FREE_CANCEL',    0, 150000.00, 1),
+       (2, 1, '조식포함',    'FREE_CANCEL',    1, 180000.00, 1),
+       (3, 2, '부분환불',    'PARTIAL_REFUND', 0, 350000.00, 1),
+       (4, 2, '조식포함',    'FREE_CANCEL',    1, 390000.00, 1);
 
 -- 명동 비즈니스 (room_type 3,4)
 INSERT INTO rate_plans (id, room_type_id, name, cancel_policy, breakfast_included, base_price, is_active)
-VALUES (5, 3, '싱글 기본',   'FREE_CANCEL',    0,  89000.00, 1),
-       (6, 3, '싱글 환불불가','NON_REFUNDABLE', 0,  75000.00, 1),
-       (7, 4, '트윈 기본',   'FREE_CANCEL',    0, 120000.00, 1),
-       (8, 4, '트윈 조식',   'FREE_CANCEL',    1, 145000.00, 1);
+VALUES (5, 3, '무료취소',    'FREE_CANCEL',    0,  89000.00, 1),
+       (6, 3, '환불불가',    'NON_REFUNDABLE', 0,  75000.00, 1),
+       (7, 4, '부분환불',    'PARTIAL_REFUND', 0, 120000.00, 1),
+       (8, 4, '조식포함',    'FREE_CANCEL',    1, 145000.00, 1);
 
 -- 제주 힐링 리조트 (room_type 5,6)
 INSERT INTO rate_plans (id, room_type_id, name, cancel_policy, breakfast_included, base_price, is_active)
-VALUES ( 9, 5, '오션뷰 기본',    'FREE_CANCEL',    0, 280000.00, 1),
-       (10, 5, '오션뷰 환불불가', 'NON_REFUNDABLE', 0, 240000.00, 1),
-       (11, 6, '패밀리 기본',    'FREE_CANCEL',    0, 480000.00, 1),
-       (12, 6, '패밀리 조식',    'FREE_CANCEL',    1, 540000.00, 1);
+VALUES ( 9, 5, '무료취소',    'FREE_CANCEL',    0, 280000.00, 1),
+       (10, 5, '환불불가',    'NON_REFUNDABLE', 0, 240000.00, 1),
+       (11, 6, '부분환불',    'PARTIAL_REFUND', 0, 480000.00, 1),
+       (12, 6, '조식포함',    'FREE_CANCEL',    1, 540000.00, 1);
 
 -- ── 재고 (향후 90일, Recursive CTE) ───────────────────────────
 -- room_type 1 : 디럭스 더블 — 10실

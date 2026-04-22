@@ -12,6 +12,6 @@ class RoomTypeAdapter(
 ) : RoomTypePort {
     override fun getById(id: Long): RoomTypeInfo =
         roomTypeRepository.findById(id)
-            .map { RoomTypeInfo(it.id, it.propertyId) }
+            .map { RoomTypeInfo(it.id, it.propertyId, it.name, it.bedType.name, it.maxOccupancy) }
             .orElseThrow { NotFoundException("RoomType", id) }
 }

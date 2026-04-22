@@ -1,10 +1,9 @@
 package com.ota.platform.property.api
 
-import com.ota.platform.common.exception.NotFoundException
 import com.ota.platform.common.response.ApiResponse
+import com.ota.platform.property.application.GetPropertyDetailUseCase
 import com.ota.platform.property.application.PropertyUseCase
 import com.ota.platform.property.domain.PropertyStatus
-import com.ota.platform.property.infrastructure.PropertyRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.cache.annotation.CacheEvict
@@ -20,33 +19,23 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/admin/properties")
 class AdminPropertyController(
-    private val propertyRepository: PropertyRepository,
     private val propertyUseCase: PropertyUseCase,
+    private val getPropertyDetailUseCase: GetPropertyDetailUseCase,
 ) {
     @Operation(summary = "전체 숙소 목록 조회")
     @GetMapping
     fun list(
         @RequestParam(required = false) status: PropertyStatus?,
         @RequestParam(required = false) city: String?,
-    ): ApiResponse<List<PropertySummaryResponse>> {
-        val properties = when {
-            status != null && city != null -> propertyRepository.findAllByStatusAndAddressCity(status, city)
-            status != null -> propertyRepository.findAllByStatus(status)
-            else -> propertyRepository.findAll()
-        }
-        return ApiResponse.ok(properties.map {
+    ): ApiResponse<List<PropertySummaryResponse>> =
+        ApiResponse.ok(propertyUseCase.list(status, city).map {
             PropertySummaryResponse(it.id, it.name, it.category.name, it.status.name, it.addressCity)
         })
-    }
 
     @Operation(summary = "숙소 상세 조회")
     @GetMapping("/{propertyId}")
-    fun get(@PathVariable propertyId: Long): ApiResponse<PropertySummaryResponse> {
-        val property = propertyUseCase.getById(propertyId)
-        return ApiResponse.ok(
-            PropertySummaryResponse(property.id, property.name, property.category.name, property.status.name, property.addressCity)
-        )
-    }
+    fun get(@PathVariable propertyId: Long): ApiResponse<PropertyDetailResponse> =
+        ApiResponse.ok(getPropertyDetailUseCase.getById(propertyId).toResponse())
 
     @Operation(summary = "숙소 승인 (PENDING_APPROVAL → ACTIVE)")
     @Caching(evict = [
@@ -55,10 +44,7 @@ class AdminPropertyController(
     ])
     @PatchMapping("/{propertyId}/approve")
     fun approve(@PathVariable propertyId: Long): ApiResponse<Unit> {
-        val property = propertyRepository.findById(propertyId)
-            .orElseThrow { NotFoundException("Property", propertyId) }
-        property.approve()
-        propertyRepository.save(property)
+        propertyUseCase.approve(propertyId)
         return ApiResponse.ok()
     }
 
@@ -69,10 +55,7 @@ class AdminPropertyController(
     ])
     @PatchMapping("/{propertyId}/deactivate")
     fun deactivate(@PathVariable propertyId: Long): ApiResponse<Unit> {
-        val property = propertyRepository.findById(propertyId)
-            .orElseThrow { NotFoundException("Property", propertyId) }
-        property.deactivate()
-        propertyRepository.save(property)
+        propertyUseCase.deactivate(propertyId)
         return ApiResponse.ok()
     }
 
@@ -83,10 +66,7 @@ class AdminPropertyController(
     ])
     @PatchMapping("/{propertyId}/reactivate")
     fun reactivate(@PathVariable propertyId: Long): ApiResponse<Unit> {
-        val property = propertyRepository.findById(propertyId)
-            .orElseThrow { NotFoundException("Property", propertyId) }
-        property.reactivate()
-        propertyRepository.save(property)
+        propertyUseCase.reactivate(propertyId)
         return ApiResponse.ok()
     }
 }

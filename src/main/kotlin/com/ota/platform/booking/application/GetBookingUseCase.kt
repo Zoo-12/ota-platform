@@ -19,4 +19,12 @@ class GetBookingUseCase(
     @Transactional(readOnly = true)
     fun getByCustomer(customerId: Long): List<Booking> =
         bookingRepository.findAllByCustomerId(customerId)
+
+    @Transactional(readOnly = true)
+    fun getAll(): List<Booking> =
+        bookingRepository.findAll()
+
+    @Transactional(readOnly = true)
+    fun getByPropertyId(propertyId: Long): List<Booking> =
+        bookingRepository.findAllByPropertyId(propertyId)
 }

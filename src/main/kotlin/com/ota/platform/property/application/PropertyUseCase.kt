@@ -1,12 +1,13 @@
 package com.ota.platform.property.application
 
+import com.ota.platform.common.config.CacheNames
 import com.ota.platform.common.exception.BadRequestException
 import com.ota.platform.common.exception.NotFoundException
 import com.ota.platform.property.domain.Property
 import com.ota.platform.property.domain.PropertyCategory
+import com.ota.platform.property.domain.PropertyStatus
 import com.ota.platform.property.infrastructure.PartnerRepository
 import com.ota.platform.property.infrastructure.PropertyRepository
-import com.ota.platform.common.config.CacheNames
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Caching
 import org.springframework.stereotype.Service
@@ -65,6 +66,34 @@ class PropertyUseCase(
 
     @Transactional(readOnly = true)
     fun getById(propertyId: Long): Property = findById(propertyId)
+
+    @Transactional(readOnly = true)
+    fun list(status: PropertyStatus?, city: String?): List<Property> = when {
+        status != null && city != null -> propertyRepository.findAllByStatusAndAddressCity(status, city)
+        status != null -> propertyRepository.findAllByStatus(status)
+        else -> propertyRepository.findAll()
+    }
+
+    @Transactional
+    fun approve(propertyId: Long) {
+        val property = findById(propertyId)
+        property.approve()
+        propertyRepository.save(property)
+    }
+
+    @Transactional
+    fun deactivate(propertyId: Long) {
+        val property = findById(propertyId)
+        property.deactivate()
+        propertyRepository.save(property)
+    }
+
+    @Transactional
+    fun reactivate(propertyId: Long) {
+        val property = findById(propertyId)
+        property.reactivate()
+        propertyRepository.save(property)
+    }
 
     private fun findById(propertyId: Long): Property =
         propertyRepository.findById(propertyId)

@@ -17,7 +17,7 @@ class RatePlanAdapter(
 
     override fun getById(id: Long): RatePlanInfo =
         ratePlanRepository.findById(id)
-            .map { RatePlanInfo(it.id, it.roomTypeId, it.basePrice) }
+            .map { RatePlanInfo(it.id, it.roomTypeId, it.name, it.cancelPolicy.name, it.breakfastIncluded, it.basePrice) }
             .orElseThrow { NotFoundException("RatePlan", id) }
 
     override fun calculateTotalPrice(ratePlanId: Long, checkIn: LocalDate, checkOut: LocalDate): PriceBreakdown {
