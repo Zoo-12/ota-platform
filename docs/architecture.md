@@ -232,21 +232,46 @@ ExternalBooking
 2. RoomInventory.availableCount 복원
 ```
 
-**외부 공급사 예약 흐름:**
+**외부 공급사 예약 흐름 (현재):**
 
 ```
 1. 고객이 공급사 숙소의 요금 선택
 2. POST /api/customer/bookings 호출 (accommodationId에 공급사 prefix 포함)
 3. CustomerBookingController → CreateExternalBookingUseCase
 4. accommodationId prefix로 source 판별 (SupplierPrefixes, AccommodationSource 상수 활용)
-5. externalBookingNo 생성 (예: "SA-A1B2C3D4")
+5. 로컬에서 externalBookingNo 임시 생성 (예: "SA-A1B2C3D4")
 6. ExternalBooking 저장 → bookingKey "EXT-{id}" 반환
-   (실제 공급사 API 호출은 FeignClient 구현 시 이 단계에서 추가)
 
 예약 목록 조회 시:
 - GetBookingDetailUseCase가 Booking + ExternalBooking 테이블을 함께 조회
 - 내부 예약: bookingKey = "INT-{id}", 숙소/객실/요금제 이름 포함
 - 외부 예약: bookingKey = "EXT-{id}", externalBookingNo만 반환 (숙소 이름 등 없음)
+```
+
+**외부 공급사 예약 흐름 (실제 API 연동 시 — SAGA 패턴 적용 계획):**
+
+```
+실제 공급사 연동 시 CreateExternalBookingUseCase를 아래 SAGA 흐름으로 전환한다.
+
+[Phase 1] 로컬 DB에 PENDING 상태로 먼저 저장 (Propagation.REQUIRES_NEW, 즉시 커밋)
+  - ExternalBooking(status=PENDING)을 즉시 커밋
+  - 이후 외부 API 실패 시에도 row가 남아 운영팀 모니터링·재처리 가능
+
+[Phase 2] 외부 공급사 API 호출 (트랜잭션 밖)
+  - SupplierBookingPort.reserve() 를 통해 공급사별 FeignClient 호출
+  - FeignClient 예시:
+      @FeignClient(name = "supplier-a", url = "${supplier.a.base-url}")
+      interface SupplierABookingClient {
+          @PostMapping("/v1/bookings")
+          fun reserve(@RequestBody req): SupplierAReserveResponse
+      }
+
+[Phase 3a] 성공 → CONFIRMED 전이 (Propagation.REQUIRES_NEW, 즉시 커밋)
+  - 공급사 발급 externalBookingNo로 갱신, status = CONFIRMED
+
+[Phase 3b] 실패 → 보상 트랜잭션 (Propagation.REQUIRES_NEW, 즉시 커밋)
+  - status = FAILED 로 갱신 (재처리 대상 식별)
+  - SupplierBookingException(HTTP 502)을 던져 클라이언트에 알림
 ```
 
 **동시성 전략 선택 근거:**
