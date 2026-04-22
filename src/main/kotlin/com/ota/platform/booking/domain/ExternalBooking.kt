@@ -3,6 +3,8 @@ package com.ota.platform.booking.domain
 import com.ota.platform.common.domain.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -70,7 +72,13 @@ class ExternalBooking(
     var guestPhone: String? = guestPhone
         protected set
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    var status: String = "CONFIRMED"
+    var status: ExternalBookingStatus = ExternalBookingStatus.CONFIRMED
         protected set
+
+    fun cancel() {
+        check(status == ExternalBookingStatus.CONFIRMED) { "이미 취소된 예약입니다." }
+        status = ExternalBookingStatus.CANCELLED
+    }
 }

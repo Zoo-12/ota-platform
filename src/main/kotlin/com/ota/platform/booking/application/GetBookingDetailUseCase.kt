@@ -103,7 +103,7 @@ class GetBookingDetailUseCase(
             guestName = ext.guestName,
             guestPhone = ext.guestPhone,
             specialRequest = null,
-            status = ext.status,
+            status = ext.status.name,
             cancelledAt = null,
             cancelReason = null,
             createdAt = ext.createdAt,

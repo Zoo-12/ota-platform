@@ -2,6 +2,8 @@ package com.ota.platform.booking.api
 
 import com.ota.platform.booking.application.CancelBookingCommand
 import com.ota.platform.booking.application.CancelBookingUseCase
+import com.ota.platform.booking.application.CancelExternalBookingCommand
+import com.ota.platform.booking.application.CancelExternalBookingUseCase
 import com.ota.platform.booking.application.CreateBookingCommand
 import com.ota.platform.booking.application.CreateBookingUseCase
 import com.ota.platform.booking.application.CreateExternalBookingCommand
@@ -31,6 +33,7 @@ class CustomerBookingController(
     private val createBookingUseCase: CreateBookingUseCase,
     private val createExternalBookingUseCase: CreateExternalBookingUseCase,
     private val cancelBookingUseCase: CancelBookingUseCase,
+    private val cancelExternalBookingUseCase: CancelExternalBookingUseCase,
     private val getBookingDetailUseCase: GetBookingDetailUseCase,
 ) {
     @Operation(summary = "예약 생성")
@@ -87,14 +90,15 @@ class CustomerBookingController(
         @PathVariable bookingKey: String,
         @Valid @RequestBody request: CancelBookingRequest,
     ): ApiResponse<Unit> {
-        val (_, bookingId) = BookingKeyType.parse(bookingKey)
-        cancelBookingUseCase.cancel(
-            CancelBookingCommand(
-                customerId = request.customerId,
-                bookingId = bookingId,
-                reason = request.reason,
-            ),
-        )
+        val (type, bookingId) = BookingKeyType.parse(bookingKey)
+        when (type) {
+            BookingKeyType.EXTERNAL -> cancelExternalBookingUseCase.cancel(
+                CancelExternalBookingCommand(customerId = request.customerId, bookingId = bookingId),
+            )
+            BookingKeyType.INTERNAL -> cancelBookingUseCase.cancel(
+                CancelBookingCommand(customerId = request.customerId, bookingId = bookingId, reason = request.reason),
+            )
+        }
         return ApiResponse.ok()
     }
 }
