@@ -457,20 +457,26 @@ src/main/kotlin/com/ota/platform/
 ## 8. API 구조
 
 ```
-/api/extranet/properties          # 파트너: 숙소 등록/조회
-/api/extranet/properties/{id}/rooms        # 객실 타입 관리
-/api/extranet/properties/{id}/rate-plans   # 요금 플랜 관리
-/api/extranet/properties/{id}/inventory    # 재고 설정
+/api/extranet/partners                              # 파트너 등록/조회
+/api/extranet/partners/{id}/properties             # 숙소 등록/관리
+/api/extranet/properties/{id}/room-types           # 객실 타입 관리
+/api/extranet/room-types/{id}/rate-plans           # 요금제 관리
+/api/extranet/room-types/{id}/inventories          # 재고 설정/조회
 
-/api/customer/accommodations/search        # 숙소 검색 (내부 + Supplier 통합)
-/api/customer/accommodations/{id}/rates    # 요금 조회
-/api/customer/bookings                     # 예약 생성
-/api/customer/bookings/{id}/cancel         # 예약 취소
+/api/customer/accommodations/search                # 숙소 검색 (내부 + Supplier 통합)
+/api/customer/accommodations/{id}                  # 숙소 상세 조회
+/api/customer/accommodations/{id}/rates            # 요금 조회
+/api/customer/bookings          [POST]             # 예약 생성 (내부 · 외부 공급사 통합)
+/api/customer/bookings          [GET]              # 내 예약 목록 조회
+/api/customer/bookings/{bookingKey}  [GET]         # 예약 상세 조회
+/api/customer/bookings/{bookingKey}  [DELETE]      # 예약 취소 (INT-{id} · EXT-{id} 모두 지원)
 
-/api/admin/properties                      # 숙소 관리
-/api/admin/bookings                        # 예약 모니터링
-/api/admin/partners                        # 파트너 관리
+/api/admin/properties                              # 숙소 목록/승인/비활성화
+/api/admin/bookings                                # 예약 모니터링
+/api/admin/partners                                # 파트너 관리
 ```
+
+> `bookingKey` 형식: 내부 예약 `INT-{id}`, 외부 공급사 예약 `EXT-{id}` (`BookingKeyType` 열거형으로 관리)
 
 ---
 
@@ -623,8 +629,8 @@ JaCoCo 기준 (Controller, Config, DTO 제외):
 
 | 지표 | 수치 |
 |------|------|
-| Instruction 커버리지 | 47% |
-| Branch 커버리지 | 36% |
+| Instruction 커버리지 | 53% |
+| Branch 커버리지 | 39% |
 
 커버리지 수치가 낮아 보이는 이유: 이 프로젝트는 **통합 테스트 위주**로 설계되어 있어 JaCoCo가 단위 테스트 기준으로 측정하는 Branch 커버리지는 낮게 집계된다. 핵심 비즈니스 로직(예약 생성/취소, 동시성 제어, 검색/요금 조회, 외부 공급사 예약)은 실제 DB·캐시 환경에서 통합 테스트로 검증된다.
 

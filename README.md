@@ -64,6 +64,7 @@ API를 직접 호출하지 않아도 **Next.js 14로 구현된 프론트엔드**
 - **예약/취소**: 고객 예약 생성 및 취소, 재고 자동 차감/복원
 - **동시성 제어**: 비관적 락(`SELECT FOR UPDATE`)으로 동시 예약 시 재고 초과 방지
 - **Supplier 통합**: 어댑터 패턴으로 외부 공급사 상품을 자사 검색에 통합
+- **외부 공급사 예약/취소**: 공급사 숙소 예약 생성 및 취소 (`external_booking` 독립 관리)
 
 ### 선택 구현
 - Admin 숙소 승인/비활성화/재활성화, 예약 모니터링
@@ -87,8 +88,8 @@ API를 직접 호출하지 않아도 **Next.js 14로 구현된 프론트엔드**
 /api/customer/accommodations/search            숙소 검색 (내부 + Supplier 통합)
 /api/customer/accommodations/{id}              숙소 상세 조회
 /api/customer/accommodations/{id}/rates        요금 조회
-/api/customer/bookings                         예약 생성/조회
-/api/customer/bookings/{id}                    예약 취소
+/api/customer/bookings                         예약 생성 (내부 · 외부 공급사 통합) / 목록 조회
+/api/customer/bookings/{bookingKey}            예약 상세 조회 / 취소 (INT-{id} · EXT-{id})
 
 /api/admin/properties                          숙소 목록/승인/비활성화
 /api/admin/bookings                            예약 모니터링
@@ -106,17 +107,26 @@ API를 직접 호출하지 않아도 **Next.js 14로 구현된 프론트엔드**
 ./performance/run-all.sh
 ```
 
-### 테스트 결과 (40개 전체 통과)
+### 테스트 결과 (53개 전체 통과)
 
-| 테스트 | 내용 |
-|--------|------|
-| ExtranetApiIntegrationTest | 숙소 등록/승인, 재고 초기화, 요금 오버라이드, stopSell, 미승인 파트너 숙소 등록 차단 |
-| BookingIntegrationTest | 예약 성공/취소/재고복원/중복취소/재고없음 |
-| BookingEdgeCaseIntegrationTest | stopSell 차단, DailyRate 반영, ratePlan 소속 검증, 미승인/비활성 숙소 예약 차단 |
-| ConcurrentBookingIntegrationTest | 재고 1개 × 10명, 재고 3개 × 10명 동시 예약 |
-| AccommodationSearchIntegrationTest | 통합 검색, 재고 제외, 최저가 정렬, 도시 필터 |
-| PropertyTest | 숙소 상태 머신 (PENDING → ACTIVE → INACTIVE → 재활성화) |
-| RoomInventoryTest | 재고 차감/복원, stopSell, 가용 여부 |
+| 테스트 | 건수 | 내용 |
+|--------|------|------|
+| ExtranetApiIntegrationTest | 6 | 숙소 등록/승인, 재고 초기화, 요금 오버라이드, stopSell, 미승인 파트너 숙소 등록 차단 |
+| BookingIntegrationTest | 5 | 예약 성공/취소/재고복원/중복취소/재고없음 |
+| BookingEdgeCaseIntegrationTest | 7 | stopSell 차단, DailyRate 반영, ratePlan 소속 검증, 미승인/비활성 숙소 예약 차단 |
+| ConcurrentBookingIntegrationTest | 2 | 재고 1개 × 10명, 재고 3개 × 10명 동시 예약 |
+| AccommodationSearchIntegrationTest | 4 | 통합 검색, 재고 제외, 최저가 정렬, 도시 필터 |
+| ExternalBookingIntegrationTest | 7 | 외부 예약 생성, source/bookingNo 검증, getById 조회, 내부+외부 통합 목록, 취소 성공/중복취소/권한오류 |
+| PropertyTest | 5 | 숙소 상태 머신 (PENDING → ACTIVE → INACTIVE → 재활성화) |
+| RoomInventoryTest | 10 | 재고 차감/복원, stopSell, 가용 여부 |
+| BookingKeyTypeTest | 7 | key 생성, parse, 라운드트립, 잘못된 형식 예외 |
+
+**JaCoCo 커버리지** (Controller, Config, DTO 제외 기준)
+
+| 지표 | 수치 |
+|------|------|
+| Instruction 커버리지 | 53% |
+| Branch 커버리지 | 39% |
 
 ### 성능 테스트 결과
 
