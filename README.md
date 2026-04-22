@@ -30,6 +30,10 @@
 - JDK 21
 - Docker Desktop
 
+> **IDE 참고사항**: `src/main/resources/static/` 폴더는 Next.js 빌드 결과물입니다.
+> IntelliJ에서 Tailwind CSS 관련 경고가 표시될 수 있으나 실행에는 영향 없습니다.
+> 경고를 제거하려면 해당 `.css` 파일을 우클릭 → **Override File Type → Plain Text** 를 선택해주시면 해결됩니다.
+
 ### 실행
 
 ```bash

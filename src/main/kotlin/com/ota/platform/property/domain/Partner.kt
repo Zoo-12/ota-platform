@@ -1,5 +1,6 @@
 package com.ota.platform.property.domain
 
+
 import com.ota.platform.common.domain.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
