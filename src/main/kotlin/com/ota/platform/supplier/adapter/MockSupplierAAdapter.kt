@@ -1,5 +1,7 @@
 package com.ota.platform.supplier.adapter
 
+import com.ota.platform.supplier.domain.SupplierAdapterType
+import com.ota.platform.supplier.infrastructure.ExternalSupplierRepository
 import com.ota.platform.supplier.port.AccommodationDetailResult
 import com.ota.platform.supplier.port.AccommodationPort
 import com.ota.platform.supplier.port.AccommodationRateResult
@@ -14,16 +16,29 @@ import java.time.LocalDate
 
 /**
  * 외부 Supplier A Mock 어댑터.
- * 실제 외부 API 연동 대신 고정 데이터를 반환하여 통합 검색 흐름을 검증한다.
- * 실제 환경에서는 Feign Client 등으로 외부 API 호출로 대체.
+ * DB에서 활성화된 공급사 목록을 조회한 뒤, Supplier A가 켜져있다면 연동을 수행합니다.
+ * 실제 연동 시: FeignClient(url = supplierInfo.apiEndpoint) 등의 라이브러리를 통해 외부 서버와 통신합니다.
+ * API 요청/응답에 대한 로깅은 이곳에 직접 작성하지 않고, Feign Configuration의
+ * RequestInterceptor 또는 Logger 설정을 통해 AOP 단에서 전역적으로 처리합니다.
  */
 @Component
-class MockSupplierAAdapter : AccommodationPort {
+class MockSupplierAAdapter(
+    private val supplierRepository: ExternalSupplierRepository
+) : AccommodationPort {
 
     override fun canHandle(accommodationId: String) = accommodationId.startsWith(SupplierPrefixes.SUPPLIER_A)
 
+    private fun getActiveSupplierInfo() =
+        supplierRepository.findAllByIsActiveTrue()
+            .find { it.adapterType == SupplierAdapterType.MOCK_SUPPLIER_A }
+
     override fun search(query: AccommodationSearchQuery): List<AccommodationSearchResult> {
-        // Mock: 서울 검색 시에만 결과 반환
+        val supplierInfo = getActiveSupplierInfo()
+
+        if (supplierInfo == null) {
+            return emptyList()
+        }
+
         if (!query.city.contains("서울")) return emptyList()
 
         return listOf(
@@ -47,6 +62,12 @@ class MockSupplierAAdapter : AccommodationPort {
     }
 
     override fun getDetail(accommodationId: String): AccommodationDetailResult {
+        val supplierInfo = getActiveSupplierInfo()
+
+        if (supplierInfo == null) {
+            throw IllegalStateException("현재 Supplier A의 상세 조회를 이용할 수 없습니다.")
+        }
+
         val mockName = if (accommodationId.endsWith("001")) "[Supplier A] 서울 중심부 호텔" else "[Supplier A] 강남 비즈니스 호텔"
         return AccommodationDetailResult(
             accommodationId = accommodationId,
@@ -67,8 +88,8 @@ class MockSupplierAAdapter : AccommodationPort {
                     bedType = "DOUBLE",
                     sizeSqm = 28.0,
                     ratePlans = listOf(
-                        RatePlanDetail("${SupplierPrefixes.SUPPLIER_A}RATE-001", "기본 요금 (무료 취소)", "FREE_CANCEL", false, java.math.BigDecimal("150000")),
-                        RatePlanDetail("${SupplierPrefixes.SUPPLIER_A}RATE-002", "조식 포함", "NON_REFUNDABLE", true, java.math.BigDecimal("170000")),
+                        RatePlanDetail("${SupplierPrefixes.SUPPLIER_A}RATE-001", "기본 요금 (무료 취소)", "FREE_CANCEL", false, BigDecimal("150000")),
+                        RatePlanDetail("${SupplierPrefixes.SUPPLIER_A}RATE-002", "조식 포함", "NON_REFUNDABLE", true, BigDecimal("170000")),
                     ),
                 ),
             ),
@@ -76,6 +97,12 @@ class MockSupplierAAdapter : AccommodationPort {
     }
 
     override fun getRates(accommodationId: String, checkIn: LocalDate, checkOut: LocalDate): List<AccommodationRateResult> {
+        val supplierInfo = getActiveSupplierInfo()
+
+        if (supplierInfo == null) {
+            return emptyList()
+        }
+
         val nights = checkIn.datesUntil(checkOut).count()
         val pricePerNight = BigDecimal("150000")
 
