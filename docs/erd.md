@@ -9,7 +9,7 @@
 
 ```
 ┌──────────────────┐
-│     partners     │
+│     partner      │
 ├──────────────────┤
 │ id (PK)          │
 │ name             │
@@ -24,10 +24,10 @@
          │
          │ N
 ┌────────▼─────────────────────────────┐
-│              properties              │
+│              property                │
 ├──────────────────────────────────────┤
 │ id (PK)                              │
-│ partner_id (FK → partners.id)        │
+│ partner_id (FK → partner.id)        │
 │ name                                 │
 │ description                          │
 │ category                             │ ── HOTEL, PENSION, GUESTHOUSE, RESORT, MOTEL
@@ -46,10 +46,10 @@
          │
          │ N
 ┌────────▼─────────────────────────────┐
-│             room_types               │
+│             room_type                │
 ├──────────────────────────────────────┤
 │ id (PK)                              │
-│ property_id (FK → properties.id)     │
+│ property_id (FK → property.id)     │
 │ name                                 │ ── Standard, Deluxe, Suite 등
 │ description                          │
 │ max_occupancy                        │
@@ -62,11 +62,11 @@
          │ 1                         │ 1
          │                           │
          │ N                         │ N
-┌────────▼──────────────────┐ ┌──────▼──────────────────────────────┐
-│        rate_plans         │ │          room_inventories            │
+┌────────▼──────────────────┐ ┌──────▼───────────────────────────────┐
+│        rate_plan          │ │          room_inventory              │
 ├───────────────────────────┤ ├──────────────────────────────────────┤
 │ id (PK)                   │ │ id (PK)                              │
-│ room_type_id (FK)         │ │ room_type_id (FK → room_types.id)    │
+│ room_type_id (FK)         │ │ room_type_id (FK → room_type.id)    │
 │ name                      │ │ date                                 │ ── DATE 타입
 │ cancel_policy             │ │ total_count                          │ ── 총 객실 수
 │  ── FREE_CANCEL           │ │ available_count                      │ ── 가용 객실 수
@@ -81,7 +81,7 @@
          │                              ▲
          │ N                            │ SELECT FOR UPDATE (예약 시)
 ┌────────▼──────────────────┐           │
-│        daily_rates        │           │
+│        daily_rate         │           │
 ├───────────────────────────┤           │
 │ id (PK)                   │           │
 │ rate_plan_id (FK)         │           │
@@ -96,7 +96,7 @@
 ┌───────────────────────────────────────┘
 │
 │        ┌──────────────────────────────────────┐
-│        │             customers                │
+│        │             customer                 │
 │        ├──────────────────────────────────────┤
 │        │ id (PK)                              │
 │        │ email                                │
@@ -108,13 +108,13 @@
 │                     │
 │                     │ N
 │        ┌────────────▼─────────────────────────┐
-│        │              bookings                │
+│        │              booking                 │
 │        ├──────────────────────────────────────┤
 │        │ id (PK)                              │
-│        │ customer_id (FK → customers.id)      │
-│        │ property_id (FK → properties.id)     │
-│        │ room_type_id (FK → room_types.id)    │
-│        │ rate_plan_id (FK → rate_plans.id)    │
+│        │ customer_id (FK → customer.id)      │
+│        │ property_id (FK → property.id)     │
+│        │ room_type_id (FK → room_type.id)    │
+│        │ rate_plan_id (FK → rate_plan.id)    │
 │        │ status                               │ ── CONFIRMED, CANCELLED
 │        │ check_in                             │
 │        │ check_out                            │
@@ -133,10 +133,10 @@
                       │
                       │ N
          ┌────────────▼─────────────────────────┐
-         │           booking_rooms              │
+         │           booking_room               │
          ├──────────────────────────────────────┤
          │ id (PK)                              │
-         │ booking_id (FK → bookings.id)        │
+         │ booking_id (FK → booking.id)        │
          │ room_inventory_id (FK)               │ ── 어떤 날짜 재고를 차감했는지
          │ date                                 │
          │ price_snapshot                       │ ── 예약 시점 가격 (불변)
@@ -150,7 +150,7 @@
 
 ```
 ┌──────────────────────────────────────┐
-│          external_suppliers          │
+│          external_supplier           │
 ├──────────────────────────────────────┤
 │ id (PK)                              │
 │ name                                 │ ── "SupplierA", "Hotelbeds" 등
@@ -170,15 +170,15 @@
 
 ## 3. 테이블별 핵심 인덱스
 
-| 테이블 | 인덱스 | 목적 |
-|--------|--------|------|
-| properties | `(status, address_city)` | 도시별 활성 숙소 검색 |
-| room_inventories | `UNIQUE (room_type_id, date)` | 날짜별 재고 단일 행 보장 |
-| room_inventories | `(room_type_id, date, available_count)` | 가용 재고 빠른 조회 |
-| daily_rates | `UNIQUE (rate_plan_id, date)` | 날짜별 요금 단일 행 보장 |
-| bookings | `(customer_id, status)` | 고객별 예약 조회 |
-| bookings | `(property_id, check_in, check_out)` | 숙소별 예약 현황 조회 |
-| booking_rooms | `(booking_id)` | 예약별 날짜 상세 조회 |
+| 테이블         | 인덱스 | 목적 |
+|-------------|--------|------|
+| property    | `(status, address_city)` | 도시별 활성 숙소 검색 |
+| room_inventory | `UNIQUE (room_type_id, date)` | 날짜별 재고 단일 행 보장 |
+| room_inventory | `(room_type_id, date, available_count)` | 가용 재고 빠른 조회 |
+| daily_rate  | `UNIQUE (rate_plan_id, date)` | 날짜별 요금 단일 행 보장 |
+| booking     | `(customer_id, status)` | 고객별 예약 조회 |
+| booking     | `(property_id, check_in, check_out)` | 숙소별 예약 현황 조회 |
+| booking_room | `(booking_id)` | 예약별 날짜 상세 조회 |
 
 ---
 
@@ -187,7 +187,7 @@
 ### 4.1 재고를 날짜별 독립 행으로 관리
 
 ```sql
--- room_inventories 예시 데이터
+-- room_inventory 예시 데이터
 | id | room_type_id | date       | total_count | available_count | stop_sell |
 |----|-------------|------------|-------------|-----------------|-----------|
 |  1 |           1 | 2026-05-01 |           5 |               5 | false     |
@@ -198,26 +198,26 @@
 **이유:** 체크인~체크아웃 기간의 각 날짜 재고를 독립적으로 차감해야 한다.
 날짜별 단일 행이므로 잠금 범위가 최소화되고 병렬 예약 처리 시 경합이 줄어든다.
 
-### 4.2 booking_rooms에 price_snapshot 저장
+### 4.2 booking_room에 price_snapshot 저장
 
-요금은 시간이 지나면 변경될 수 있다. 예약 시점의 가격을 `booking_rooms.price_snapshot`에 불변 값으로 저장하여 정산, 분쟁, 히스토리 추적에 활용한다.
+요금은 시간이 지나면 변경될 수 있다. 예약 시점의 가격을 `booking_room.price_snapshot`에 불변 값으로 저장하여 정산, 분쟁, 히스토리 추적에 활용한다.
 
 ### 4.3 DailyRate로 기본 요금 오버라이드
 
-`rate_plans.base_price`는 기본값이고, 파트너가 특정 날짜에 다른 가격을 설정하면 `daily_rates` 테이블에 행이 생성된다.
-요금 조회 시: `daily_rates` 우선 조회 → 없으면 `rate_plans.base_price` 사용.
+`rate_plan.base_price`는 기본값이고, 파트너가 특정 날짜에 다른 가격을 설정하면 `daily_rate` 테이블에 행이 생성된다.
+요금 조회 시: `daily_rate` 우선 조회 → 없으면 `rate_plan.base_price` 사용.
 
 ```sql
 SELECT COALESCE(dr.price, rp.base_price) AS effective_price
-FROM rate_plans rp
-LEFT JOIN daily_rates dr
+FROM rate_plan rp
+LEFT JOIN daily_rate dr
   ON dr.rate_plan_id = rp.id AND dr.date = :date
 WHERE rp.id = :ratePlanId;
 ```
 
-### 4.4 bookings에 property_id, room_type_id 비정규화
+### 4.4 booking에 property_id, room_type_id 비정규화
 
-`booking_rooms`를 통해 조회할 수 있지만, 예약 목록 조회 시 매번 JOIN을 피하기 위해 `bookings`에도 직접 저장한다. 예약 시점 이후 변경되지 않는 값이므로 데이터 정합성 문제가 없다.
+`booking_room`를 통해 조회할 수 있지만, 예약 목록 조회 시 매번 JOIN을 피하기 위해 `booking`에도 직접 저장한다. 예약 시점 이후 변경되지 않는 값이므로 데이터 정합성 문제가 없다.
 
 ---
 
@@ -227,7 +227,7 @@ WHERE rp.id = :ratePlanId;
 
 ```sql
 -- 1. 해당 날짜 범위 재고 행 전체에 비관적 락
-SELECT * FROM room_inventories
+SELECT * FROM room_inventory
 WHERE room_type_id = 1
   AND date IN ('2026-05-01', '2026-05-02')
   AND stop_sell = false
@@ -236,14 +236,14 @@ FOR UPDATE;
 -- 2. 모든 날짜 available_count > 0 검증 (애플리케이션 레벨)
 
 -- 3. 재고 차감
-UPDATE room_inventories
+UPDATE room_inventory
 SET available_count = available_count - 1
 WHERE room_type_id = 1
   AND date IN ('2026-05-01', '2026-05-02');
 
 -- 4. 예약 생성
-INSERT INTO bookings (...) VALUES (...);
-INSERT INTO booking_rooms (...) VALUES (...); -- 날짜별 행
+INSERT INTO booking (...) VALUES (...);
+INSERT INTO booking_room (...) VALUES (...); -- 날짜별 행
 ```
 
 동시에 같은 날짜에 예약 요청이 들어오면 두 번째 트랜잭션은 `FOR UPDATE` 단계에서 대기하고,
@@ -255,23 +255,23 @@ INSERT INTO booking_rooms (...) VALUES (...); -- 날짜별 행
 
 ```mermaid
 erDiagram
-    partners ||--o{ properties : "등록"
-    properties ||--o{ room_types : "보유"
-    room_types ||--o{ rate_plans : "가짐"
-    room_types ||--o{ room_inventories : "날짜별 재고"
-    rate_plans ||--o{ daily_rates : "날짜별 요금 오버라이드"
-    customers ||--o{ bookings : "예약"
-    bookings ||--o{ booking_rooms : "날짜별 상세"
-    room_inventories ||--o{ booking_rooms : "차감"
-    properties ||--o{ bookings : "대상 숙소"
+    partner ||--o{ property : "등록"
+    property ||--o{ room_type : "보유"
+    room_type ||--o{ rate_plan : "가짐"
+    room_type ||--o{ room_inventory : "날짜별 재고"
+    rate_plan ||--o{ daily_rate : "날짜별 요금 오버라이드"
+    customer ||--o{ booking : "예약"
+    booking ||--o{ booking_room : "날짜별 상세"
+    room_inventory ||--o{ booking_room : "차감"
+    property ||--o{ booking : "대상 숙소"
 
-    partners {
+    partner {
         bigint id PK
         varchar name
         varchar email
         varchar status
     }
-    properties {
+    property {
         bigint id PK
         bigint partner_id FK
         varchar name
@@ -279,20 +279,20 @@ erDiagram
         varchar status
         varchar address_city
     }
-    room_types {
+    room_type {
         bigint id PK
         bigint property_id FK
         varchar name
         int max_occupancy
     }
-    rate_plans {
+    rate_plan {
         bigint id PK
         bigint room_type_id FK
         varchar cancel_policy
         boolean breakfast_included
         decimal base_price
     }
-    room_inventories {
+    room_inventory {
         bigint id PK
         bigint room_type_id FK
         date date
@@ -300,18 +300,18 @@ erDiagram
         int available_count
         boolean stop_sell
     }
-    daily_rates {
+    daily_rate {
         bigint id PK
         bigint rate_plan_id FK
         date date
         decimal price
     }
-    customers {
+    customer {
         bigint id PK
         varchar email
         varchar name
     }
-    bookings {
+    booking {
         bigint id PK
         bigint customer_id FK
         bigint property_id FK
@@ -322,7 +322,7 @@ erDiagram
         date check_out
         decimal total_price
     }
-    booking_rooms {
+    booking_room {
         bigint id PK
         bigint booking_id FK
         bigint room_inventory_id FK
