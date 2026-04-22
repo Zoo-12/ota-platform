@@ -7,11 +7,9 @@ import com.ota.platform.booking.application.CreateBookingUseCase
 import com.ota.platform.booking.infrastructure.BookingRepository
 import com.ota.platform.common.exception.BadRequestException
 import com.ota.platform.common.exception.ConflictException
-import com.ota.platform.inventory.infrastructure.RoomInventoryRepository
 import com.ota.platform.property.application.BulkUpdateInventoryCommand
 import com.ota.platform.property.application.InventoryUseCase
 import com.ota.platform.property.application.RatePlanUseCase
-import com.ota.platform.property.infrastructure.RatePlanRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.DisplayName
@@ -35,14 +33,10 @@ class BookingEdgeCaseIntegrationTest : AbstractIntegrationTest() {
     @Autowired lateinit var createBookingUseCase: CreateBookingUseCase
     @Autowired lateinit var inventoryUseCase: InventoryUseCase
     @Autowired lateinit var ratePlanUseCase: RatePlanUseCase
-    @Autowired lateinit var ratePlanRepository: RatePlanRepository
     @Autowired lateinit var bookingRepository: BookingRepository
-    @Autowired lateinit var roomInventoryRepository: RoomInventoryRepository
 
     private val checkIn: LocalDate = LocalDate.now().plusDays(50)
     private val checkOut: LocalDate = LocalDate.now().plusDays(52) // 2박
-
-    // ── stopSell ──────────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("stopSell=true인 날짜를 포함한 예약 요청은 ConflictException이 발생한다")
@@ -139,8 +133,6 @@ class BookingEdgeCaseIntegrationTest : AbstractIntegrationTest() {
         assertThat(booking).isNotNull
     }
 
-    // ── DailyRate 오버라이드 ──────────────────────────────────────────────────
-
     @Test
     @Transactional
     @DisplayName("DailyRate로 오버라이드된 날짜의 요금이 예약 totalPrice와 priceSnapshot에 반영된다")
@@ -214,8 +206,6 @@ class BookingEdgeCaseIntegrationTest : AbstractIntegrationTest() {
             it.priceSnapshot.compareTo(BigDecimal("80000")) == 0
         }
     }
-
-    // ── ratePlan 소속 검증 ────────────────────────────────────────────────────
 
     @Test
     @DisplayName("ratePlan이 해당 roomType 소속이 아니면 BadRequestException이 발생한다")

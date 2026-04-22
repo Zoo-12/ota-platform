@@ -553,3 +553,16 @@ RequestLoggingFilter
 ```
 
 Testcontainers는 `AbstractIntegrationTest`에서 MySQL·Redis 컨테이너를 **한 번만 기동**하고 전체 테스트 클래스가 공유한다(`companion object` 내 `init` 블록). 덕분에 컨테이너 재시작 비용 없이 격리된 DB 환경을 유지한다.
+
+### 테스트 커버리지
+
+JaCoCo 기준 (Controller, Config, DTO 제외):
+
+| 지표 | 수치 |
+|------|------|
+| Instruction 커버리지 | 54% |
+| Branch 커버리지 | 37% |
+
+커버리지 수치가 낮아 보이는 이유: 이 프로젝트는 **통합 테스트 위주**로 설계되어 있어 JaCoCo가 단위 테스트 기준으로 측정하는 Branch 커버리지는 낮게 집계된다. 핵심 비즈니스 로직(예약 생성/취소, 동시성 제어, 검색/요금 조회)은 실제 DB·캐시 환경에서 통합 테스트로 검증된다.
+
+리포트 확인: `./gradlew test jacocoTestReport` → `build/reports/jacoco/test/html/index.html`

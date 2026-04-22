@@ -175,7 +175,6 @@ class BookingIntegrationTest : AbstractIntegrationTest() {
             .hasMessageContaining("체크아웃")
     }
 
-    // 테스트용 데이터 셋업 헬퍼
     private data class TestScenario(val customerId: Long, val roomTypeId: Long, val ratePlanId: Long)
 
     private fun setupScenario(totalCount: Int = 1): TestScenario {

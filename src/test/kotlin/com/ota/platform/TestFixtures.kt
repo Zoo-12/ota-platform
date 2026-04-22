@@ -44,8 +44,8 @@ class TestFixtures(
     }
 
     @Transactional
-    fun createActiveProperty(partnerId: Long, city: String = "서울"): Property {
-        val property = propertyRepository.save(
+    fun createPendingProperty(partnerId: Long, city: String = "서울"): Property {
+        return propertyRepository.save(
             Property(
                 partnerId = partnerId,
                 name = "테스트 호텔",
@@ -60,6 +60,11 @@ class TestFixtures(
                 checkOutTime = LocalTime.of(11, 0),
             ),
         )
+    }
+
+    @Transactional
+    fun createActiveProperty(partnerId: Long, city: String = "서울"): Property {
+        val property = createPendingProperty(partnerId, city)
         property.approve()
         return propertyRepository.save(property)
     }

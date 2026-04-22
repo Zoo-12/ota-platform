@@ -28,8 +28,6 @@ class RoomInventoryTest {
         return inv
     }
 
-    // ── decrease ─────────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("재고가 있으면 decrease 호출 시 availableCount가 1 감소한다")
     fun `decrease - 재고 있을 때 차감 성공`() {
@@ -59,8 +57,6 @@ class RoomInventoryTest {
             .isInstanceOf(ConflictException::class.java)
     }
 
-    // ── increase ─────────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("availableCount < totalCount 이면 increase 호출 시 1 증가한다")
     fun `increase - 정상 복원`() {
@@ -81,8 +77,6 @@ class RoomInventoryTest {
             .hasMessageContaining("총 수량을 초과")
     }
 
-    // ── isAvailable ───────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("availableCount > 0 이고 stopSell=false 이면 isAvailable은 true")
     fun `isAvailable - 정상 재고`() {
@@ -100,8 +94,6 @@ class RoomInventoryTest {
     fun `isAvailable - stopSell 활성화`() {
         assertThat(inventory(total = 5, available = 5, stopSell = true).isAvailable()).isFalse()
     }
-
-    // ── updateStopSell ────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("updateStopSell(true) 호출 후 stopSell 필드가 true로 변경된다")

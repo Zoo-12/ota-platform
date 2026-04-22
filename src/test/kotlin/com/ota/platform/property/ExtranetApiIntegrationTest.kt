@@ -2,17 +2,11 @@ package com.ota.platform.property
 
 import com.ota.platform.AbstractIntegrationTest
 import com.ota.platform.TestFixtures
-import com.ota.platform.property.application.InventoryUseCase
-import com.ota.platform.property.application.BulkUpdateInventoryCommand
-import com.ota.platform.property.application.RatePlanUseCase
-import com.ota.platform.property.application.RegisterRatePlanCommand
-import com.ota.platform.property.application.RegisterRoomTypeCommand
-import com.ota.platform.property.application.RoomTypeUseCase
+import com.ota.platform.inventory.infrastructure.RoomInventoryRepository
+import com.ota.platform.property.application.*
 import com.ota.platform.property.domain.BedType
 import com.ota.platform.property.domain.CancelPolicy
-import com.ota.platform.property.infrastructure.RatePlanRepository
-import com.ota.platform.property.infrastructure.RoomTypeRepository
-import com.ota.platform.inventory.infrastructure.RoomInventoryRepository
+import com.ota.platform.property.domain.PropertyStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -28,8 +22,6 @@ class ExtranetApiIntegrationTest : AbstractIntegrationTest() {
     @Autowired lateinit var roomTypeUseCase: RoomTypeUseCase
     @Autowired lateinit var ratePlanUseCase: RatePlanUseCase
     @Autowired lateinit var inventoryUseCase: InventoryUseCase
-    @Autowired lateinit var roomTypeRepository: RoomTypeRepository
-    @Autowired lateinit var ratePlanRepository: RatePlanRepository
     @Autowired lateinit var roomInventoryRepository: RoomInventoryRepository
 
     @Test
@@ -37,12 +29,20 @@ class ExtranetApiIntegrationTest : AbstractIntegrationTest() {
     @DisplayName("파트너가 숙소를 등록하면 PENDING_APPROVAL 상태로 생성된다")
     fun `숙소 등록 시 PENDING_APPROVAL 상태`() {
         val partner = fixtures.createPartner()
+        val property = fixtures.createPendingProperty(partner.id)
+
+        assertThat(property.status).isEqualTo(PropertyStatus.PENDING_APPROVAL)
+        assertThat(property.partnerId).isEqualTo(partner.id)
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Admin이 숙소를 승인하면 ACTIVE 상태가 된다")
+    fun `숙소 승인 시 ACTIVE 상태`() {
+        val partner = fixtures.createPartner()
         val property = fixtures.createActiveProperty(partner.id)
 
-        // approve() 호출 전이면 PENDING_APPROVAL 이어야 하지만
-        // createActiveProperty는 내부에서 approve() 호출 → ACTIVE
-        assertThat(property.status.name).isEqualTo("ACTIVE")
-        assertThat(property.partnerId).isEqualTo(partner.id)
+        assertThat(property.status).isEqualTo(PropertyStatus.ACTIVE)
     }
 
     @Test

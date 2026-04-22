@@ -49,7 +49,7 @@ class ConcurrentBookingIntegrationTest : AbstractIntegrationTest() {
 
         // when — 10개 스레드 동시 예약 시작
         val executor = Executors.newFixedThreadPool(concurrentRequests)
-        val startLatch = CountDownLatch(1)       // 동시 시작을 위한 래치
+        val startLatch = CountDownLatch(1)
         val doneLatch = CountDownLatch(concurrentRequests)
         val successCount = AtomicInteger(0)
         val failCount = AtomicInteger(0)
@@ -57,7 +57,7 @@ class ConcurrentBookingIntegrationTest : AbstractIntegrationTest() {
         customers.forEach { customer ->
             executor.submit {
                 try {
-                    startLatch.await() // 모든 스레드가 준비될 때까지 대기
+                    startLatch.await()
                     createBookingUseCase.create(
                         CreateBookingCommand(
                             customerId = customer.id,
@@ -80,8 +80,8 @@ class ConcurrentBookingIntegrationTest : AbstractIntegrationTest() {
             }
         }
 
-        startLatch.countDown() // 모든 스레드 동시 시작
-        doneLatch.await()      // 모든 스레드 완료 대기
+        startLatch.countDown()
+        doneLatch.await()
         executor.shutdown()
 
         // then
@@ -110,7 +110,7 @@ class ConcurrentBookingIntegrationTest : AbstractIntegrationTest() {
     fun `동시 예약 - 재고 3개에 10명 요청 시 3건만 성공`() {
         // given
         val checkIn = LocalDate.now().plusDays(30)
-        val checkOut = LocalDate.now().plusDays(32) // 2박
+        val checkOut = LocalDate.now().plusDays(32)
         val totalInventory = 3
         val concurrentRequests = 10
 

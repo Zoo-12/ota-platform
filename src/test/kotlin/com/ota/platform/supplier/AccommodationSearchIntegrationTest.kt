@@ -57,14 +57,12 @@ class AccommodationSearchIntegrationTest : AbstractIntegrationTest() {
         val property = fixtures.createActiveProperty(partner.id, city = "서울")
         val roomType = fixtures.createRoomType(property.id)
         fixtures.createRatePlan(roomType.id)
-        // 재고 0개로 초기화
         fixtures.createInventoryRange(roomType.id, checkIn, checkOut.minusDays(1), totalCount = 0)
 
         val results = accommodationSearchService.search(
             AccommodationSearchQuery(city = "서울", checkIn = checkIn, checkOut = checkOut, guestCount = 1),
         )
 
-        // 자사 결과에는 해당 숙소가 없어야 함
         val internalResults = results.filter { it.source == AccommodationSource.INTERNAL }
         assertThat(internalResults).noneMatch { it.accommodationId == "INTERNAL:${property.id}" }
     }

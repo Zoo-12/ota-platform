@@ -4,6 +4,7 @@ plugins {
     kotlin("plugin.jpa") version "2.1.20"
     id("org.springframework.boot") version "3.5.0"
     id("io.spring.dependency-management") version "1.1.7"
+    jacoco
 }
 
 group = "com.ota"
@@ -77,4 +78,27 @@ allOpen {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required = false
+        html.required = true
+    }
+    classDirectories.setFrom(
+        files(classDirectories.files.map {
+            fileTree(it) {
+                exclude(
+                    "**/config/**",
+                    "**/common/exception/**",
+                    "**/*Application*",
+                    "**/*Controller*",
+                    "**/*Request*",
+                    "**/*Response*",
+                )
+            }
+        })
+    )
 }
